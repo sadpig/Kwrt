@@ -69,13 +69,13 @@ index 494837a..c1ac9a8 100644
 +  BLOCKSIZE := 128k
 +  PAGESIZE := 2048
 +  KERNEL_IN_UBI := 1
-+  KERNEL_SIZE := 3584k
++  KERNEL_SIZE := 6144k
 +  KERNEL_LOADADDR := 0x40000000
 +  KERNEL = kernel-bin | lzma | \
 +	fit lzma $$(KDIR)/image-$$(firstword $$(DEVICE_DTS)).dtb
 +  KERNEL_INITRAMFS = kernel-bin | lzma | \
 +	fit lzma $$(KDIR)/image-$$(firstword $$(DEVICE_DTS)).dtb with-initrd
-+  IMAGE_SIZE := 30208k
++  IMAGE_SIZE := 65536k
 +  IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
 +  DEVICE_PACKAGES := mt7987-2p5g-phy-firmware kmod-mt7990-firmware \
 +	kmod-hwmon-pwmfan kmod-usb3
