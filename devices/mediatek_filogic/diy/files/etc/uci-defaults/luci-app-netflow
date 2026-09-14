@@ -1,0 +1,128 @@
+#!/bin/sh
+
+# Ensure UCI sections exist
+uci -q get netflow.config >/dev/null || uci set netflow.config=netflow
+uci -q get netflow.v2board >/dev/null || uci set netflow.v2board=v2board
+
+# Set defaults only if not already configured
+[ -z "$(uci -q get netflow.config.enable)" ] && uci set netflow.config.enable='0'
+[ -z "$(uci -q get netflow.config.proxy_mode)" ] && uci set netflow.config.proxy_mode='rule'
+[ -z "$(uci -q get netflow.config.tun_enabled)" ] && uci set netflow.config.tun_enabled='0'
+[ -z "$(uci -q get netflow.config.api_port)" ] && uci set netflow.config.api_port='9091'
+[ -z "$(uci -q get netflow.config.api_secret)" ] && uci set netflow.config.api_secret='netflow_secret'
+[ -z "$(uci -q get netflow.config.backend_port)" ] && uci set netflow.config.backend_port='9190'
+[ -z "$(uci -q get netflow.config.redir_port)" ] && uci set netflow.config.redir_port='7892'
+[ -z "$(uci -q get netflow.config.dns_port)" ] && uci set netflow.config.dns_port='7874'
+[ -z "$(uci -q get netflow.config.mixed_port)" ] && uci set netflow.config.mixed_port='7890'
+[ -z "$(uci -q get netflow.config.mihomo_path)" ] && uci set netflow.config.mihomo_path='/etc/netflow/mihomo/mihomo'
+[ -z "$(uci -q get netflow.config.lan_proxy)" ] && uci set netflow.config.lan_proxy='1'
+[ -z "$(uci -q get netflow.config.ipv6_proxy)" ] && uci set netflow.config.ipv6_proxy='0'
+
+# oss_url: always update from package (injected at build time by CI)
+# https://osskehu.oss-cn-shanghai.aliyuncs.com/ConFigOss.json,https://osskehu.oss-cn-shanghai.aliyuncs.com/ConFigOss.json is replaced by sed in CI workflow
+OSS_URL='https://osskehu.oss-cn-shanghai.aliyuncs.com/ConFigOss.json,https://osskehu.oss-cn-shanghai.aliyuncs.com/ConFigOss.json'
+if [ "$OSS_URL" != "https://osskehu.oss-cn-shanghai.aliyuncs.com/ConFigOss.json,https://osskehu.oss-cn-shanghai.aliyuncs.com/ConFigOss.json" ] && [ -n "$OSS_URL" ]; then
+    uci set netflow.config.oss_url="$OSS_URL"
+fi
+
+# Migrate old 'enabled' to 'enable' for consistency with shell version
+OLD_ENABLED="$(uci -q get netflow.config.enabled)"
+if [ -n "$OLD_ENABLED" ]; then
+    [ -z "$(uci -q get netflow.config.enable)" ] && uci set netflow.config.enable="$OLD_ENABLED"
+    uci -q delete netflow.config.enabled
+fi
+
+uci commit netflow
+
+# Ensure directories exist
+mkdir -p /etc/netflow/mihomo
+mkdir -p /etc/netflow/v2board
+
+# Verify mihomo binary
+if [ -x "/etc/netflow/mihomo/mihomo" ]; then
+    logger -t netflow "mihomo binary ready"
+else
+    logger -t netflow "WARNING: mihomo binary not found"
+fi
+
+# Generate device salt if not exists（魔改固件可能无 hexdump，用 od/base64 兜底）
+if [ ! -f /etc/netflow/.dev_salt ] || [ ! -s /etc/netflow/.dev_salt ]; then
+    if [ -c /dev/urandom ]; then
+        if command -v hexdump >/dev/null 2>&1; then
+            head -c 32 /dev/urandom | hexdump -e '32/1 "%02x"' > /etc/netflow/.dev_salt
+        elif command -v od >/dev/null 2>&1; then
+            head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n' > /etc/netflow/.dev_salt
+        else
+            head -c 24 /dev/urandom | base64 2>/dev/null | tr -d '\n' > /etc/netflow/.dev_salt
+        fi
+    fi
+    chmod 600 /etc/netflow/.dev_salt 2>/dev/null
+fi
+
+# Set permissions
+chmod 755 /etc/init.d/netflow
+
+# Ensure netflow binary symlink exists (postinst may have been deferred)
+detect_mips_endian() {
+    local byte
+    byte=$(hexdump -s 5 -n 1 -e '"%d"' /bin/busybox 2>/dev/null)
+    if [ "$byte" = "1" ]; then
+        echo "mipsel"
+    else
+        echo "mips"
+    fi
+}
+
+if [ ! -x "/usr/bin/netflow" ]; then
+    ARCH=$(uname -m)
+    case "$ARCH" in
+        x86_64)  BIN="netflow_x86_64" ;;
+        aarch64) BIN="netflow_aarch64" ;;
+        armv7*)  BIN="netflow_arm" ;;
+        arm*)    BIN="netflow_arm" ;;
+        mips|mipsel)
+            REAL_MIPS=$(detect_mips_endian)
+            BIN="netflow_${REAL_MIPS}"
+            ;;
+        *)
+            REAL_MIPS=$(detect_mips_endian)
+            if [ "$REAL_MIPS" = "mipsel" ] || [ "$REAL_MIPS" = "mips" ]; then
+                BIN="netflow_${REAL_MIPS}"
+            else
+                BIN="netflow_x86_64"
+            fi
+            ;;
+    esac
+    if [ -x "/usr/bin/${BIN}" ]; then
+        ln -sf "/usr/bin/${BIN}" /usr/bin/netflow
+        logger -t netflow "linked ${BIN} -> /usr/bin/netflow (arch: ${ARCH}, actual: ${BIN})"
+    else
+        logger -t netflow "WARNING: binary /usr/bin/${BIN} not found for arch ${ARCH}"
+    fi
+fi
+
+# Monthly geodata update cron
+BACKEND_PORT=$(uci -q get netflow.config.backend_port 2>/dev/null)
+BACKEND_PORT="${BACKEND_PORT:-9190}"
+CRON_LINE="0 3 1 * * /usr/bin/curl -s -X POST http://127.0.0.1:${BACKEND_PORT}/api/update_geodata >/dev/null 2>&1"
+CRON_FILE="/etc/crontabs/root"
+if [ -f "$CRON_FILE" ]; then
+    grep -q "update_geodata" "$CRON_FILE" || echo "$CRON_LINE" >> "$CRON_FILE"
+else
+    echo "$CRON_LINE" > "$CRON_FILE"
+fi
+/etc/init.d/cron restart 2>/dev/null
+
+# Clear LuCI cache
+rm -rf /tmp/luci-indexcache /tmp/luci-modulecache
+
+# OpenWrt 25+：新 ACL 需 rpcd 重读，否则 LuCI 菜单不显示
+/etc/init.d/rpcd restart 2>/dev/null || true
+killall -HUP uhttpd 2>/dev/null || true
+killall -HUP nginx 2>/dev/null || true
+
+# Enable and start service
+/etc/init.d/netflow enable
+/etc/init.d/netflow start
+
+exit 0

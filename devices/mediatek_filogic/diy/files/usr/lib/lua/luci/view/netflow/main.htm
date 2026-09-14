@@ -1,0 +1,1991 @@
+<%+header%>
+
+<style>
+:root {
+    --nf-primary: #4f8ef7;
+    --nf-primary-dark: #3a6fd8;
+    --nf-success: #4caf50;
+    --nf-danger: #f44336;
+    --nf-warning: #ff9800;
+    --nf-bg: #1a1d23;
+    --nf-card: #22262e;
+    --nf-card-hover: #2a2f38;
+    --nf-border: #333842;
+    --nf-text: #e0e0e0;
+    --nf-text-dim: #8a94a6;
+    --nf-radius: 12px;
+}
+
+#netflow-app {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+    color: var(--nf-text);
+}
+
+.nf-header {
+    text-align: center;
+    margin-bottom: 24px;
+}
+.nf-header h2 {
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0 0 6px 0;
+    color: var(--nf-primary);
+}
+.nf-header p {
+    color: var(--nf-text-dim);
+    margin: 0;
+    font-size: 14px;
+}
+
+#nf-loading-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    gap: 16px;
+}
+.nf-loading-spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid var(--nf-border);
+    border-top-color: var(--nf-primary);
+    border-radius: 50%;
+    animation: nf-spin 0.8s linear infinite;
+}
+#nf-loading-screen span {
+    color: var(--nf-text-dim);
+    font-size: 14px;
+}
+
+#nf-dashboard-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+#nf-dashboard-section.nf-fade-in { opacity: 1; }
+
+.nf-col-left, .nf-col-right {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+#nf-login-section {
+    max-width: 420px;
+    margin: 0 auto;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+#nf-login-section.nf-fade-in { opacity: 1; }
+
+.nf-card {
+    background: var(--nf-card);
+    border: 1px solid var(--nf-border);
+    border-radius: var(--nf-radius);
+    padding: 20px;
+    margin-bottom: 16px;
+}
+.nf-card-title {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0 0 14px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.nf-form-group { margin-bottom: 16px; }
+.nf-form-group label {
+    display: block;
+    font-size: 13px;
+    color: var(--nf-text-dim);
+    margin-bottom: 6px;
+    font-weight: 500;
+}
+.nf-input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--nf-border);
+    border-radius: 8px;
+    background: var(--nf-bg);
+    color: var(--nf-text);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+}
+.nf-input:focus { border-color: var(--nf-primary); }
+
+.nf-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #fff;
+    min-width: 90px;
+}
+.nf-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.nf-btn-primary { background: var(--nf-primary); }
+.nf-btn-primary:hover:not(:disabled) { background: var(--nf-primary-dark); }
+.nf-btn-success { background: var(--nf-success); }
+.nf-btn-success:hover:not(:disabled) { background: #43a047; }
+.nf-btn-danger { background: var(--nf-danger); }
+.nf-btn-danger:hover:not(:disabled) { background: #e53935; }
+.nf-btn-sm { padding: 6px 14px; font-size: 12px; min-width: auto; }
+.nf-btn-outline {
+    background: var(--nf-bg); border: 1px solid var(--nf-border); color: var(--nf-text);
+    flex: 0 0 auto;
+}
+.nf-btn-outline:hover:not(:disabled) { background: var(--nf-card-hover); border-color: var(--nf-primary); color: var(--nf-primary); }
+.nf-btn-block { width: 100%; display: flex; }
+.nf-btn:active:not(:disabled) { transform: scale(0.97); }
+
+.nf-status-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    border-radius: var(--nf-radius);
+    margin-bottom: 16px;
+    transition: all 0.3s ease;
+    background: var(--nf-card);
+    border: 1px solid var(--nf-border);
+    color: var(--nf-text);
+}
+.nf-status-bar.running {
+    background: linear-gradient(135deg, var(--nf-card), rgba(76, 175, 80, 0.15));
+    border-color: rgba(76, 175, 80, 0.4);
+}
+.nf-status-bar.stopped {
+    background: linear-gradient(135deg, var(--nf-card), rgba(244, 67, 54, 0.15));
+    border-color: rgba(244, 67, 54, 0.4);
+}
+.nf-status-bar.starting {
+    background: linear-gradient(135deg, var(--nf-card), rgba(79, 142, 247, 0.15));
+    border-color: rgba(79, 142, 247, 0.4);
+}
+.nf-status-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.nf-status-dot.on { background: var(--nf-success); box-shadow: 0 0 8px rgba(76,175,80,0.5); }
+.nf-status-dot.off { background: var(--nf-danger); }
+.nf-status-dot.pending { background: var(--nf-primary); animation: nf-pulse 1s ease-in-out infinite; }
+.nf-status-text { flex: 1; font-weight: 600; font-size: 15px; }
+.nf-status-info { color: var(--nf-text-dim); font-size: 13px; }
+
+.nf-toggle-wrap {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+.nf-toggle-wrap .nf-btn { flex: 1; padding: 14px; font-size: 16px; }
+
+.nf-node-list {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px;
+    max-height: 800px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+.nf-node-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 14px;
+    background: var(--nf-bg);
+    border: 2px solid var(--nf-border);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    gap: 10px;
+    position: relative;
+    min-width: 0;
+}
+.nf-node-item:hover { background: var(--nf-card-hover); border-color: var(--nf-primary); }
+.nf-node-item.active { border-color: var(--nf-primary); background: rgba(79, 142, 247, 0.1); }
+.nf-node-item.switching { opacity: 0.6; pointer-events: none; }
+.nf-node-item.preselected { border-color: var(--nf-warning); border-style: dashed; background: rgba(255, 152, 0, 0.06); }
+.nf-node-item:active { transform: scale(0.99); }
+.nf-node-active-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--nf-primary); box-shadow: 0 0 6px rgba(79, 142, 247, 0.6);
+    flex-shrink: 0;
+}
+.nf-node-preselect-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--nf-warning); box-shadow: 0 0 6px rgba(255, 152, 0, 0.5);
+    flex-shrink: 0;
+}
+.nf-node-name {
+    font-size: 13px; overflow: hidden;
+    white-space: nowrap; text-overflow: ellipsis; position: relative;
+}
+.nf-node-item:hover .nf-node-name { text-overflow: clip; }
+.nf-node-name > span {
+    display: inline-block; position: relative; transition: none;
+}
+.nf-node-item:hover .nf-node-name > span {
+    animation: nf-scroll-name 3s linear 0.3s infinite alternate;
+}
+@keyframes nf-scroll-name {
+    0%, 15% { transform: translateX(0); }
+    85%, 100% { transform: translateX(var(--nf-scroll-x, 0px)); }
+}
+.nf-node-info { flex: 1; min-width: 0; }
+.nf-node-type {
+    font-size: 10px; color: var(--nf-text-dim); margin-top: 2px; opacity: 0.7;
+}
+.nf-node-delay { font-size: 12px; color: var(--nf-text-dim); min-width: 50px; text-align: right; }
+.nf-node-delay.fast { color: var(--nf-success); }
+.nf-node-delay.medium { color: var(--nf-warning); }
+.nf-node-delay.slow { color: var(--nf-danger); }
+.nf-node-delay.testing { color: var(--nf-primary); animation: nf-pulse 1s ease-in-out infinite; }
+
+.nf-group-tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+.nf-group-tab {
+    padding: 6px 14px; border-radius: 6px; font-size: 13px; cursor: pointer;
+    background: var(--nf-bg); border: 1px solid var(--nf-border);
+    color: var(--nf-text-dim); transition: all 0.15s;
+    display: inline-flex; align-items: center; gap: 6px;
+}
+.nf-group-tab:hover { border-color: var(--nf-primary); color: var(--nf-text); }
+.nf-group-tab.active { background: var(--nf-primary); border-color: var(--nf-primary); color: #fff; }
+.nf-group-tab.loading { opacity: 0.7; pointer-events: none; }
+.nf-group-tab:active { transform: scale(0.96); }
+.nf-group-tab.nf-compact {
+    padding: 5px 12px;
+    font-size: 12px;
+    opacity: 0.92;
+}
+.nf-group-tab.nf-compact.active {
+    border-color: var(--nf-success);
+    color: var(--nf-success);
+    background: rgba(52, 199, 89, 0.1);
+}
+.nf-group-tab .nf-tab-spinner {
+    display: none; width: 12px; height: 12px;
+    border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff;
+    border-radius: 50%; animation: nf-spin 0.6s linear infinite;
+}
+.nf-group-tab.loading .nf-tab-spinner { display: inline-block; }
+.nf-group-auto-badge {
+    font-size: 10px; padding: 1px 6px; border-radius: 4px;
+    background: rgba(255, 152, 0, 0.22); color: var(--nf-warning); font-weight: 600;
+    line-height: 1.2;
+}
+.nf-auto-group-hint {
+    font-size: 12px; color: var(--nf-text-dim); padding: 8px 10px; margin-bottom: 10px;
+    background: rgba(255, 152, 0, 0.08); border: 1px solid rgba(255, 152, 0, 0.22);
+    border-radius: 8px; line-height: 1.45; grid-column: 1 / -1;
+}
+.nf-node-item.nf-node-readonly {
+    cursor: default;
+    opacity: 0.96;
+}
+.nf-node-item.nf-node-readonly:hover {
+    border-color: var(--nf-border);
+    background: var(--nf-bg);
+}
+.nf-node-item.nf-node-readonly:active { transform: none; }
+
+.nf-user-info { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.nf-info-item { padding: 10px; background: var(--nf-bg); border-radius: 8px; }
+.nf-info-label { font-size: 12px; color: var(--nf-text-dim); margin-bottom: 4px; }
+.nf-info-value { font-size: 14px; font-weight: 600; }
+
+.nf-log-area {
+    background: var(--nf-bg);
+    border: 1px solid var(--nf-border);
+    border-radius: 8px;
+    padding: 10px;
+    font-family: "Consolas", "Monaco", monospace;
+    font-size: 11px;
+    color: var(--nf-text-dim);
+    min-height: 200px;
+    max-height: 500px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    line-height: 1.6;
+}
+.nf-log-line-info { color: var(--nf-success); }
+.nf-log-line-warn { color: var(--nf-warning); }
+.nf-log-line-error { color: var(--nf-danger); }
+
+.nf-stats-panel {
+    grid-column: 1 / 3;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-top: 4px;
+}
+.nf-stat-item {
+    background: var(--nf-card);
+    border: 1px solid var(--nf-border);
+    border-radius: var(--nf-radius);
+    padding: 16px;
+    text-align: center;
+}
+.nf-stat-label {
+    font-size: 12px;
+    color: var(--nf-text-dim);
+    margin-bottom: 6px;
+}
+.nf-stat-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--nf-success);
+}
+.nf-stat-value.inactive { color: var(--nf-text-dim); }
+
+.nf-toast {
+    position: fixed; top: 20px; right: 20px;
+    padding: 12px 20px; border-radius: 8px; color: #fff;
+    font-size: 14px; z-index: 9999; opacity: 0;
+    transform: translateY(-10px); transition: all 0.3s; max-width: 350px;
+}
+.nf-toast.show { opacity: 1; transform: translateY(0); }
+.nf-toast.success { background: var(--nf-success); }
+.nf-toast.error { background: var(--nf-danger); }
+.nf-toast.info { background: var(--nf-primary); }
+
+.nf-hidden { display: none !important; }
+
+.nf-loading {
+    display: inline-block; width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff;
+    border-radius: 50%; animation: nf-spin 0.6s linear infinite; margin-right: 6px;
+}
+
+@keyframes nf-spin { to { transform: rotate(360deg); } }
+@keyframes nf-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+@keyframes nf-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+.nf-skeleton {
+    background: linear-gradient(90deg, var(--nf-bg) 25%, var(--nf-card-hover) 50%, var(--nf-bg) 75%);
+    background-size: 200% 100%; animation: nf-shimmer 1.5s ease-in-out infinite;
+    border-radius: 6px; height: 40px; margin-bottom: 8px;
+}
+
+.nf-actions-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.nf-core-info { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.nf-core-info .nf-info-item { padding: 10px; background: var(--nf-bg); border-radius: 8px; }
+.nf-select {
+    width: 100%; padding: 8px 12px; border: 1px solid var(--nf-border);
+    border-radius: 8px; background: var(--nf-bg); color: var(--nf-text);
+    font-size: 13px; outline: none; cursor: pointer; box-sizing: border-box;
+    -webkit-appearance: none; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238a94a6' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center;
+}
+.nf-select:focus { border-color: var(--nf-primary); }
+.nf-select option { background: var(--nf-card); color: var(--nf-text); }
+.nf-progress-wrap { margin-top: 12px; }
+.nf-progress-bar-outer {
+    width: 100%; height: 8px; background: var(--nf-bg); border-radius: 4px; overflow: hidden;
+}
+.nf-progress-bar-inner {
+    height: 100%; background: var(--nf-primary); border-radius: 4px;
+    transition: width 0.3s ease; width: 0%;
+}
+.nf-progress-bar-inner.done { background: var(--nf-success); }
+.nf-progress-bar-inner.error { background: var(--nf-danger); }
+.nf-progress-text { font-size: 12px; color: var(--nf-text-dim); margin-top: 6px; }
+
+.nf-core-update-banner {
+    margin: 0 16px 12px 16px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: rgba(255, 152, 0, 0.12);
+    border: 1px solid rgba(255, 152, 0, 0.35);
+    font-size: 13px;
+    color: var(--nf-text);
+    line-height: 1.45;
+}
+.nf-core-update-banner.nf-hidden { display: none !important; }
+.nf-core-banner-main { display: flex; align-items: flex-start; gap: 2px; flex-wrap: wrap; }
+.nf-core-banner-dot {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--nf-warning); margin-top: 5px; flex-shrink: 0;
+}
+.nf-core-banner-sub { margin-top: 6px; font-size: 12px; color: var(--nf-text-dim); }
+
+.nf-mode-desc {
+    font-size: 12px; color: var(--nf-text-dim); margin-top: 8px; transition: opacity 0.2s;
+}
+.nf-mode-desc.switching { opacity: 0.5; }
+
+.nf-combined-card {
+    background: var(--nf-card);
+    border: 1px solid var(--nf-border);
+    border-radius: var(--nf-radius);
+    margin-bottom: 16px;
+    overflow: hidden;
+}
+.nf-combined-card .nf-toggle-row {
+    display: flex;
+    border-bottom: 1px solid var(--nf-border);
+}
+.nf-combined-card .nf-toggle-row .nf-tun-toggle {
+    flex: 1; margin: 0; border: none; border-radius: 0;
+}
+.nf-combined-card .nf-toggle-row .nf-tun-toggle + .nf-tun-toggle {
+    border-left: 1px solid var(--nf-border);
+}
+.nf-combined-card .nf-run-mode-section {
+    padding: 14px 18px;
+}
+.nf-proxy-mode-bar {
+    display: flex;
+    border-bottom: 1px solid var(--nf-border);
+}
+.nf-proxy-mode-bar .nf-proxy-mode-tab {
+    flex: 1; text-align: center; padding: 12px 0; font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: all 0.15s; color: var(--nf-text-dim); background: transparent;
+    border: none; outline: none;
+}
+.nf-proxy-mode-bar .nf-proxy-mode-tab + .nf-proxy-mode-tab {
+    border-left: 1px solid var(--nf-border);
+}
+.nf-proxy-mode-bar .nf-proxy-mode-tab:hover:not(.active) { background: var(--nf-card-hover); color: var(--nf-text); }
+.nf-proxy-mode-bar .nf-proxy-mode-tab.active { background: var(--nf-primary); color: #fff; }
+.nf-proxy-mode-bar .nf-proxy-mode-tab.loading { opacity: 0.7; pointer-events: none; }
+.nf-combined-card .nf-nodes-inner { padding: 14px 18px 18px; }
+.nf-tun-toggle {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 18px; background: var(--nf-card); border: 1px solid var(--nf-border);
+    border-radius: var(--nf-radius); margin-bottom: 16px; transition: all 0.2s ease;
+}
+.nf-tun-label { font-size: 14px; font-weight: 600; color: var(--nf-text); }
+.nf-tun-desc { font-size: 12px; color: var(--nf-text-dim); margin-top: 2px; }
+.nf-lan-proxy-hint { margin-top: 10px; padding: 10px 12px; border-radius: 8px; background: rgba(79, 142, 247, 0.08); border: 1px solid rgba(79, 142, 247, 0.15); }
+.nf-lan-proxy-hint-inner { font-size: 12px; color: var(--nf-text-dim); line-height: 1.55; }
+.nf-lan-proxy-hint code { font-size: 12px; color: var(--nf-primary); padding: 1px 6px; background: var(--nf-bg); border-radius: 4px; word-break: break-all; }
+.nf-switch {
+    position: relative; width: 48px; height: 26px; background: var(--nf-border);
+    border-radius: 13px; cursor: pointer; transition: background 0.3s ease; flex-shrink: 0;
+}
+.nf-switch.on { background: var(--nf-primary); }
+.nf-switch.disabled { opacity: 0.5; pointer-events: none; }
+.nf-switch::after {
+    content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px;
+    background: #fff; border-radius: 50%; transition: transform 0.3s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.nf-switch.on::after { transform: translateX(22px); }
+
+@media (max-width: 900px) {
+    #nf-dashboard-section { grid-template-columns: 1fr; }
+    .nf-stats-panel { grid-column: 1; grid-template-columns: repeat(2, 1fr); }
+    .nf-log-area { min-height: 150px; max-height: 300px; }
+}
+
+#netflow-app.nf-light {
+    --nf-bg: #f0f2f5; --nf-card: #ffffff; --nf-card-hover: #f5f5f5;
+    --nf-border: #d9dde3; --nf-text: #1a1a2e; --nf-text-dim: #666e80;
+}
+#netflow-app.nf-light .nf-node-type { color: #888; }
+#netflow-app.nf-light .nf-node-item.active { background: rgba(79, 142, 247, 0.06); }
+#netflow-app.nf-light .nf-node-item.preselected { background: rgba(255, 152, 0, 0.04); }
+#netflow-app.nf-light .nf-status-bar { background: #fff; border-color: #e0e0e0; color: #1a1a2e; }
+#netflow-app.nf-light .nf-status-bar.running { background: linear-gradient(135deg, #fff, rgba(76,175,80,0.08)); border-color: rgba(76,175,80,0.3); }
+#netflow-app.nf-light .nf-status-bar.stopped { background: linear-gradient(135deg, #fff, rgba(244,67,54,0.08)); border-color: rgba(244,67,54,0.3); }
+#netflow-app.nf-light .nf-status-bar.starting { background: linear-gradient(135deg, #fff, rgba(79,142,247,0.08)); border-color: rgba(79,142,247,0.3); }
+#netflow-app.nf-light .nf-toast.success { background: #388e3c; }
+#netflow-app.nf-light .nf-toast.error { background: #d32f2f; }
+#netflow-app.nf-light .nf-toast.info { background: #1976d2; }
+#netflow-app.nf-light .nf-group-tab.active { color: #fff; }
+#netflow-app.nf-light .nf-group-tab.nf-compact {
+    background: #f5f7fa; border-color: #c8cdd5; color: #444;
+}
+#netflow-app.nf-light .nf-group-tab.nf-compact.active {
+    background: rgba(40, 167, 69, 0.12); border-color: #28a745; color: #1e7e34;
+}
+#netflow-app.nf-light .nf-mode-desc { color: #555; }
+#netflow-app.nf-light .nf-lan-proxy-hint { background: rgba(25, 118, 210, 0.06); border-color: rgba(25, 118, 210, 0.2); }
+#netflow-app.nf-light .nf-lan-proxy-hint code { background: #f0f2f5; color: #1565c0; }
+#netflow-app.nf-light .nf-stat-item { background: #fff; }
+#netflow-app.nf-light .nf-select { background-color: #fff; }
+#netflow-app.nf-light .nf-select option { background: #fff; color: #1a1a2e; }
+#netflow-app.nf-light .nf-btn-outline { background: #fff; }
+@media (prefers-color-scheme: light) {
+    :root {
+        --nf-bg: #f0f2f5; --nf-card: #ffffff; --nf-card-hover: #f5f5f5;
+        --nf-border: #d9dde3; --nf-text: #1a1a2e; --nf-text-dim: #666e80;
+    }
+}
+</style>
+
+<div id="netflow-app">
+    <div class="nf-header">
+        <h2>kuli云</h2>
+        <p id="nf-subtitle">Proxy Client</p>
+    </div>
+
+    <div id="nf-loading-screen">
+        <div class="nf-loading-spinner"></div>
+        <span>加载中...</span>
+    </div>
+
+    <div id="nf-login-section" class="nf-hidden">
+        <div class="nf-card">
+            <div class="nf-card-title">&#x1f511; 账户登录</div>
+            <div class="nf-form-group">
+                <label>邮箱</label>
+                <input type="email" id="nf-email" class="nf-input" placeholder="请输入邮箱">
+            </div>
+            <div class="nf-form-group">
+                <label>密码</label>
+                <input type="password" id="nf-password" class="nf-input" placeholder="请输入密码">
+            </div>
+            <button class="nf-btn nf-btn-primary nf-btn-block" id="nf-login-btn" onclick="nfLogin()">登 录</button>
+        </div>
+    </div>
+
+    <div id="nf-dashboard-section" class="nf-hidden">
+        <div class="nf-col-left">
+            <div id="nf-proxy-status-bar" class="nf-status-bar stopped">
+                <div id="nf-status-dot" class="nf-status-dot off"></div>
+                <span id="nf-status-text" class="nf-status-text">代理未运行</span>
+                <span id="nf-status-info" class="nf-status-info"></span>
+            </div>
+
+            <div class="nf-toggle-wrap">
+                <button class="nf-btn nf-btn-success" id="nf-start-btn" onclick="nfStartProxy()">启用代理</button>
+                <button class="nf-btn nf-btn-danger" id="nf-stop-btn" onclick="nfStopProxy()">停止代理</button>
+            </div>
+
+            <div class="nf-combined-card" id="nf-settings-card">
+                <div class="nf-toggle-row">
+                    <div class="nf-tun-toggle" id="nf-lan-proxy-toggle">
+                        <div>
+                            <div class="nf-tun-label">局域网代理</div>
+                            <div class="nf-tun-desc" id="nf-lan-proxy-desc">开启后局域网设备流量走代理</div>
+                            <div class="nf-lan-proxy-hint nf-hidden" id="nf-lan-proxy-hint">
+                                <div class="nf-lan-proxy-hint-inner">
+                                     局域网地址 <code id="nf-lan-router-ip">—</code>，端口 <code id="nf-lan-mixed-port">7890</code>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="nf-switch" id="nf-lan-proxy-switch" onclick="nfSwitchLANProxy()"></div>
+                    </div>
+                    <div class="nf-tun-toggle" id="nf-ipv6-proxy-toggle">
+                        <div>
+                            <div class="nf-tun-label">IPv6 代理</div>
+                            <div class="nf-tun-desc" id="nf-ipv6-proxy-desc">开启后 IPv6 流量也走代理（需节点支持）</div>
+                        </div>
+                        <div class="nf-switch" id="nf-ipv6-proxy-switch" onclick="nfSwitchIPv6Proxy()"></div>
+                    </div>
+                </div>
+                <div class="nf-run-mode-section" id="nf-run-mode-card">
+                    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                        <span style="font-size:13px; font-weight:500; color:var(--nf-text-dim); white-space:nowrap;">&#x26A1; 运行模式</span>
+                        <div class="nf-group-tabs" id="nf-run-mode-tabs" style="margin-bottom:0;">
+                            <div class="nf-group-tab" id="nf-rm-redir-host" onclick="nfSwitchRunMode('redir-host')">增强</div>
+                            <div class="nf-group-tab" id="nf-rm-tun" onclick="nfSwitchRunMode('tun')">TUN</div>
+                            <div class="nf-group-tab" id="nf-rm-mixed" onclick="nfSwitchRunMode('mixed')">混合</div>
+                            <button type="button" class="nf-group-tab nf-compact" id="nf-rm-compat" onclick="nfSwitchRunMode('fake-ip')">标准兼容</button>
+                        </div>
+                    </div>
+                    <div class="nf-mode-desc" id="nf-run-mode-desc"></div>
+                </div>
+            </div>
+
+            <div class="nf-combined-card" id="nf-nodes-card">
+                <div class="nf-proxy-mode-bar" id="nf-mode-tabs">
+                    <button class="nf-proxy-mode-tab active" id="nf-mode-rule" onclick="nfSwitchMode('rule')">规则模式</button>
+                    <button class="nf-proxy-mode-tab" id="nf-mode-global" onclick="nfSwitchMode('global')">全局模式</button>
+                    <button class="nf-proxy-mode-tab" id="nf-mode-direct" onclick="nfSwitchMode('direct')">直连模式</button>
+                </div>
+                <div class="nf-nodes-inner">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+                        <div class="nf-group-tabs" id="nf-group-tabs" style="margin-bottom:0;"></div>
+                        <button class="nf-btn nf-btn-sm nf-btn-primary" id="nf-delay-btn" onclick="nfTestDelay()" style="display:none;">测速</button>
+                    </div>
+                    <div class="nf-node-list" id="nf-node-list">
+                        <div class="nf-skeleton"></div>
+                        <div class="nf-skeleton"></div>
+                        <div class="nf-skeleton"></div>
+                        <div class="nf-skeleton"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="nf-col-right">
+            <div class="nf-card" id="nf-core-card">
+                <div class="nf-card-title" style="justify-content:space-between;">
+                    <span>&#x2699; 核心管理</span>
+                    <button class="nf-btn nf-btn-sm nf-btn-primary" id="nf-core-check-btn" onclick="nfCheckCoreUpdate()">检查更新</button>
+                </div>
+                <div id="nf-core-update-banner" class="nf-core-update-banner nf-hidden" role="status"></div>
+                <div class="nf-core-info">
+                    <div class="nf-info-item">
+                        <div class="nf-info-label">核心状态</div>
+                        <div class="nf-info-value" id="nf-core-status">检测中...</div>
+                    </div>
+                    <div class="nf-info-item">
+                        <div class="nf-info-label">设备架构</div>
+                        <div class="nf-info-value" id="nf-core-arch">-</div>
+                    </div>
+                    <div class="nf-info-item">
+                        <div class="nf-info-label">当前版本</div>
+                        <div class="nf-info-value" id="nf-core-version">-</div>
+                    </div>
+                    <div class="nf-info-item">
+                        <div class="nf-info-label">最新版本</div>
+                        <div class="nf-info-value" id="nf-core-latest">-</div>
+                    </div>
+                </div>
+                <div class="nf-form-group" style="margin-bottom:10px;">
+                    <label>下载源</label>
+                    <select class="nf-select" id="nf-core-source">
+                        <option value="github">GitHub 官方</option>
+                    </select>
+                </div>
+                <div style="display:flex;gap:8px;margin-bottom:10px;">
+                    <button class="nf-btn nf-btn-primary" style="flex:1;" id="nf-core-download-btn" onclick="nfDownloadCore()">下载 / 更新核心</button>
+                    <button class="nf-btn nf-btn-outline" id="nf-core-upload-btn" onclick="document.getElementById('nf-core-file-input').click()">上传核心</button>
+                    <input type="file" id="nf-core-file-input" style="display:none;" accept=".gz,application/gzip,application/octet-stream" onchange="nfUploadCore(this)">
+                </div>
+                <div class="nf-progress-wrap nf-hidden" id="nf-core-progress-wrap">
+                    <div class="nf-progress-bar-outer">
+                        <div class="nf-progress-bar-inner" id="nf-core-progress-bar"></div>
+                    </div>
+                    <div class="nf-progress-text" id="nf-core-progress-text"></div>
+                </div>
+            </div>
+
+            <div class="nf-card">
+                <div class="nf-card-title">&#x1f464; 账户信息</div>
+                <div class="nf-user-info">
+                    <div class="nf-info-item">
+                        <div class="nf-info-label">邮箱</div>
+                        <div class="nf-info-value" id="nf-user-email">-</div>
+                    </div>
+                    <div class="nf-info-item">
+                        <div class="nf-info-label">到期时间</div>
+                        <div class="nf-info-value" id="nf-user-expire">-</div>
+                    </div>
+                    <div class="nf-info-item">
+                        <div class="nf-info-label">已用流量</div>
+                        <div class="nf-info-value" id="nf-user-used">-</div>
+                    </div>
+                    <div class="nf-info-item">
+                        <div class="nf-info-label">总流量</div>
+                        <div class="nf-info-value" id="nf-user-total">-</div>
+                    </div>
+                </div>
+                <div id="nf-last-sub-time" style="font-size:12px;color:var(--nf-text-dim);margin-bottom:10px;padding:0 2px;"></div>
+                <div class="nf-actions-row">
+                    <button class="nf-btn nf-btn-primary nf-btn-sm" id="nf-sub-btn" onclick="nfSubscribe()">更新订阅</button>
+                    <button class="nf-btn nf-btn-primary nf-btn-sm" id="nf-geo-btn" onclick="nfUpdateGeo()" style="background:var(--nf-warning);">更新规则库</button>
+                    <button class="nf-btn nf-btn-primary nf-btn-sm nf-hidden" id="nf-website-btn" onclick="nfOpenWebsite()" style="background:#6366f1;">官方网站</button>
+                    <button class="nf-btn nf-btn-danger nf-btn-sm" onclick="nfLogout()">退出登录</button>
+                </div>
+            </div>
+
+            <div class="nf-card" style="flex:1;display:flex;flex-direction:column;">
+                <div class="nf-card-title" style="justify-content:space-between;">
+                    <span>&#x1f4cb; 实时日志</span>
+                    <button class="nf-btn nf-btn-sm nf-btn-primary" onclick="nfClearLog()">清除</button>
+                </div>
+                <div class="nf-log-area" id="nf-log-area" style="flex:1;">暂无日志</div>
+            </div>
+        </div>
+
+        <div class="nf-stats-panel" id="nf-stats-panel">
+            <div class="nf-stat-item">
+                <div class="nf-stat-label">上传</div>
+                <div class="nf-stat-value inactive" id="nf-stat-up-speed">- -</div>
+            </div>
+            <div class="nf-stat-item">
+                <div class="nf-stat-label">下载</div>
+                <div class="nf-stat-value inactive" id="nf-stat-down-speed">- -</div>
+            </div>
+            <div class="nf-stat-item">
+                <div class="nf-stat-label">上传总量</div>
+                <div class="nf-stat-value inactive" id="nf-stat-up-total">- -</div>
+            </div>
+            <div class="nf-stat-item">
+                <div class="nf-stat-label">下载总量</div>
+                <div class="nf-stat-value inactive" id="nf-stat-down-total">- -</div>
+            </div>
+            <div class="nf-stat-item">
+                <div class="nf-stat-label">活动连接</div>
+                <div class="nf-stat-value inactive" id="nf-stat-connections">- -</div>
+            </div>
+            <div class="nf-stat-item">
+                <div class="nf-stat-label">内存占用</div>
+                <div class="nf-stat-value inactive" id="nf-stat-memory">- -</div>
+            </div>
+            <div class="nf-stat-item">
+                <div class="nf-stat-label">CPU 占用</div>
+                <div class="nf-stat-value inactive" id="nf-stat-cpu">- -</div>
+            </div>
+            <div class="nf-stat-item">
+                <div class="nf-stat-label">系统负载</div>
+                <div class="nf-stat-value inactive" id="nf-stat-load">- -</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="nf-toast" class="nf-toast"></div>
+</div>
+
+<script>
+(function() {
+
+var apiUrl = '<%=luci.dispatcher.build_url("admin", "services", "netflow", "api")%>';
+var nodesData = null;
+var currentGroup = '';
+var refreshTimer = null;
+var nodesRefreshTimer = null;
+var logTimer = null;
+var statsTimer = null;
+var proxyRunning = false;
+var currentMode = 'rule';
+var tunEnabled = false;
+var cachedGroups = null;
+var delayResults = {};
+var toastTimer = null;
+var btnDebounce = {};
+var lanProxyEnabled = true;
+var ipv6ProxyEnabled = false;
+var coreProgressTimer = null;
+var websiteURL = '';
+
+function apiCall(action, params, callback) {
+    var xhr = new XMLHttpRequest();
+    var body = 'action=' + encodeURIComponent(action);
+    if (params) {
+        for (var k in params) {
+            if (!Object.prototype.hasOwnProperty.call(params, k)) continue;
+            var pv = params[k];
+            if (pv === undefined || pv === null) continue;
+            body += '&' + encodeURIComponent(k) + '=' + encodeURIComponent(String(pv));
+        }
+    }
+    xhr.open('POST', apiUrl, true);
+    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4) {
+            var result = null;
+            try { result = JSON.parse(xhr.responseText); } catch(e) { result = {status:'error', message: xhr.responseText || '网络错误'}; }
+            if (callback) callback(result);
+        }
+    };
+    xhr.send(body);
+}
+
+function debounce(key, fn, delay) {
+    if (btnDebounce[key]) return;
+    btnDebounce[key] = true;
+    fn();
+    setTimeout(function() { delete btnDebounce[key]; }, delay || 500);
+}
+
+function showToast(msg, type) {
+    var t = document.getElementById('nf-toast');
+    t.textContent = msg;
+    t.className = 'nf-toast ' + (type || 'info') + ' show';
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function() { t.className = 'nf-toast'; }, 3000);
+}
+
+function formatBytes(bytes) {
+    if (bytes === undefined || bytes === null || bytes < 0) return '0 B';
+    if (bytes === 0) return '0 B';
+    var units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    var i = Math.floor(Math.log(bytes) / Math.log(1024));
+    if (i >= units.length) i = units.length - 1;
+    return (bytes / Math.pow(1024, i)).toFixed(2) + ' ' + units[i];
+}
+
+function formatSpeed(bytesPerSec) {
+    if (!bytesPerSec || bytesPerSec <= 0) return '0 B/s';
+    var units = ['B/s', 'KB/s', 'MB/s', 'GB/s'];
+    var i = Math.floor(Math.log(bytesPerSec) / Math.log(1024));
+    if (i >= units.length) i = units.length - 1;
+    return (bytesPerSec / Math.pow(1024, i)).toFixed(1) + ' ' + units[i];
+}
+
+function formatTimestamp(ts) {
+    if (!ts || ts <= 0) return '永久';
+    var d = new Date(ts * 1000);
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function setBtnLoading(btn, loading) {
+    if (loading) {
+        btn.disabled = true;
+        btn._origText = btn.textContent;
+        btn.innerHTML = '<span class="nf-loading"></span>处理中...';
+    } else {
+        btn.disabled = false;
+        btn.textContent = btn._origText || btn.textContent;
+    }
+}
+
+function startLogPolling(fast) {
+    stopLogPolling();
+    var interval = fast ? 1000 : 3000;
+    refreshLog();
+    logTimer = setInterval(refreshLog, interval);
+}
+function stopLogPolling() {
+    if (logTimer) { clearInterval(logTimer); logTimer = null; }
+}
+
+function startStatsPolling() {
+    stopStatsPolling();
+    refreshStats();
+    statsTimer = setInterval(refreshStats, 3000);
+}
+function stopStatsPolling() {
+    if (statsTimer) { clearInterval(statsTimer); statsTimer = null; }
+}
+
+/* --- Actions --- */
+window.nfLogin = function() {
+    var email = document.getElementById('nf-email').value.trim();
+    var password = document.getElementById('nf-password').value;
+    if (!email || !password) { showToast('请输入邮箱和密码', 'error'); return; }
+
+    var btn = document.getElementById('nf-login-btn');
+    if (btn.disabled) return;
+    setBtnLoading(btn, true);
+
+    apiCall('login', {email: email, password: password}, function(res) {
+        setBtnLoading(btn, false);
+        if (res.status === 'success') {
+            showToast('登录成功', 'success');
+            showDashboard({email: res.email || email, website_url: res.website_url});
+            setTimeout(function() { refreshDashboardStatus(); }, 5000);
+        } else {
+            showToast(res.message || '登录失败', 'error');
+        }
+    });
+};
+
+window.nfLogout = function() {
+    apiCall('logout', null, function() {
+        showToast('已退出', 'info');
+        showLogin();
+    });
+};
+
+window.nfSubscribe = function() {
+    debounce('subscribe', function() {
+        var btn = document.getElementById('nf-sub-btn');
+        setBtnLoading(btn, true);
+        startLogPolling(true);
+        apiCall('subscribe', null, function(res) {
+            setBtnLoading(btn, false);
+            startLogPolling(false);
+            if (res.status === 'success') {
+                showToast('订阅获取成功', 'success');
+                var subTimeEl = document.getElementById('nf-last-sub-time');
+                if (subTimeEl) {
+                    var now = new Date();
+                    var pad = function(n) { return n < 10 ? '0' + n : n; };
+                    subTimeEl.textContent = '上次订阅更新: ' + now.getFullYear() + '-' + pad(now.getMonth()+1) + '-' + pad(now.getDate()) + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+                }
+                refreshNodes();
+            } else {
+                showToast(res.message || '订阅更新失败', 'error');
+            }
+        });
+    });
+};
+
+window.nfStartProxy = function() {
+    debounce('start', function() {
+        var btn = document.getElementById('nf-start-btn');
+        setBtnLoading(btn, true);
+
+        var bar = document.getElementById('nf-proxy-status-bar');
+        var dot = document.getElementById('nf-status-dot');
+        var text = document.getElementById('nf-status-text');
+        bar.className = 'nf-status-bar starting';
+        dot.className = 'nf-status-dot pending';
+        text.textContent = '正在启动...';
+
+        startLogPolling(true);
+
+        apiCall('proxy_start', null, function(res) {
+            setBtnLoading(btn, false);
+            if (res.status === 'success') {
+                showToast('代理启动中，等待就绪...', 'info');
+                text.textContent = '正在等待就绪...';
+                var pollCount = 0;
+                var maxPolls = 20;
+                var pollInterval = setInterval(function() {
+                    pollCount++;
+                    apiCall('nodes', null, function(nodeRes) {
+                        if (nodeRes.status === 'success' && nodeRes.source === 'api' && nodeRes.data && nodeRes.data.proxies) {
+                            clearInterval(pollInterval);
+                            showToast('代理已启动', 'success');
+                            proxyRunning = true;
+                            refreshDashboardStatus();
+                            refreshNodes();
+                            startLogPolling(false);
+                            startStatsPolling();
+                        } else if (pollCount >= maxPolls) {
+                            clearInterval(pollInterval);
+                            showToast('代理启动超时，请检查日志', 'error');
+                            startLogPolling(false);
+                            refreshDashboardStatus();
+                            refreshNodes();
+                        }
+                    });
+                }, 2000);
+            } else {
+                showToast(res.message || '启动失败', 'error');
+                startLogPolling(false);
+                refreshDashboardStatus();
+            }
+        });
+    }, 2000);
+};
+
+window.nfStopProxy = function() {
+    debounce('stop', function() {
+        var btn = document.getElementById('nf-stop-btn');
+        setBtnLoading(btn, true);
+
+        var bar = document.getElementById('nf-proxy-status-bar');
+        var dot = document.getElementById('nf-status-dot');
+        var text = document.getElementById('nf-status-text');
+        bar.className = 'nf-status-bar starting';
+        dot.className = 'nf-status-dot pending';
+        text.textContent = '正在停止...';
+
+        startLogPolling(true);
+
+        apiCall('proxy_stop', null, function(res) {
+            setBtnLoading(btn, false);
+            showToast('代理已停止', 'info');
+            proxyRunning = false;
+            delayResults = {};
+            startLogPolling(false);
+            stopStatsPolling();
+            resetStatsUI();
+            refreshDashboardStatus();
+            refreshNodes();
+        });
+    }, 2000);
+};
+
+window.nfSelectNode = function(group, node, el) {
+    if (cachedGroups) {
+        for (var gi = 0; gi < cachedGroups.length; gi++) {
+            if (cachedGroups[gi].name !== group) continue;
+            if (!isManualSelectorGroup(cachedGroups[gi].type)) {
+                showToast('该组为「' + policyGroupHint(cachedGroups[gi].type) + '」类型，由核心自动调度，无法手动固定', 'info');
+                return;
+            }
+            break;
+        }
+    }
+    var items = document.querySelectorAll('#nf-node-list .nf-node-item');
+    for (var i = 0; i < items.length; i++) {
+        items[i].classList.remove('active', 'preselected');
+    }
+    if (el) el.classList.add(proxyRunning ? 'active' : 'preselected', 'switching');
+
+    apiCall('select_node', {group: group, node: node}, function(res) {
+        if (el) el.classList.remove('switching');
+        if (res.status === 'success') {
+            showToast('已切换到: ' + node, 'success');
+            // 与核心同步「当前节点」：原先只改点击项 DOM，cachedGroups/nodesData 仍是旧的 now，
+            // 切换分组或状态栏会错，必须整表按 group.now 重绘（与刷新页面效果一致）
+            if (cachedGroups) {
+                for (var gii = 0; gii < cachedGroups.length; gii++) {
+                    if (cachedGroups[gii].name === group) {
+                        cachedGroups[gii].now = node;
+                        break;
+                    }
+                }
+            }
+            if (nodesData && nodesData[group]) {
+                nodesData[group].now = node;
+            }
+            if (cachedGroups) {
+                var fgOk = filterGroupsByMode(cachedGroups);
+                renderNodeList(fgOk);
+                updateStatusBarNode(fgOk);
+            }
+            setTimeout(function() { refreshNodes(); }, 200);
+        } else {
+            showToast(res.message || '切换失败', 'error');
+            refreshNodes();
+        }
+    });
+};
+
+function updateNodeDots() {
+    var items = document.querySelectorAll('#nf-node-list .nf-node-item');
+    for (var i = 0; i < items.length; i++) {
+        var dot = items[i].querySelector('.nf-node-active-dot, .nf-node-preselect-dot');
+        if (items[i].classList.contains('active')) {
+            if (!dot || dot.className !== 'nf-node-active-dot') {
+                if (dot) dot.remove();
+                var d = document.createElement('span'); d.className = 'nf-node-active-dot';
+                items[i].insertBefore(d, items[i].firstChild);
+            }
+        } else if (items[i].classList.contains('preselected')) {
+            if (!dot || dot.className !== 'nf-node-preselect-dot') {
+                if (dot) dot.remove();
+                var d = document.createElement('span'); d.className = 'nf-node-preselect-dot';
+                items[i].insertBefore(d, items[i].firstChild);
+            }
+        } else {
+            if (dot) dot.remove();
+        }
+    }
+}
+
+var modeDescs = {
+    'rule': '规则模式：根据规则分流，国内直连、国外代理',
+    'global': '全局模式：所有流量都通过代理',
+    'direct': '直连模式：所有流量都直连，不走代理'
+};
+
+window.nfSwitchMode = function(mode) {
+    if (mode === currentMode) return;
+    debounce('mode_' + mode, function() {
+        var prevMode = currentMode;
+        updateModeUI(mode);
+        setModeLoading(mode, true);
+        var descEl = document.getElementById('nf-mode-desc');
+        if (descEl) descEl.classList.add('switching');
+
+        apiCall('switch_mode', {mode: mode}, function(res) {
+            setModeLoading(mode, false);
+            if (descEl) descEl.classList.remove('switching');
+            if (res.status === 'success') {
+                currentMode = mode;
+                delayResults = {};
+                showToast(res.message || '模式已切换', 'success');
+                var nodesInner = document.querySelector('#nf-nodes-card .nf-nodes-inner');
+                var statusInfo = document.getElementById('nf-status-info');
+                if (mode === 'direct') {
+                    if (nodesInner) nodesInner.classList.add('nf-hidden');
+                    if (statusInfo && proxyRunning) statusInfo.textContent = '直连模式';
+                } else {
+                    if (nodesInner) nodesInner.classList.remove('nf-hidden');
+                    if (cachedGroups) {
+                        var groups = filterGroupsByMode(cachedGroups);
+                        var gNames = groups.map(function(g) { return g.name; });
+                        if (!currentGroup || gNames.indexOf(currentGroup) < 0) currentGroup = gNames[0] || '';
+                        renderGroupTabs(groups);
+                        renderNodeList(groups);
+                        updateStatusBarNode(groups);
+                    } else { refreshNodes(); }
+                }
+            } else {
+                updateModeUI(prevMode);
+                showToast(res.message || '切换失败', 'error');
+            }
+        });
+    }, 300);
+};
+
+function setModeLoading(mode, loading) {
+    var el = document.getElementById('nf-mode-' + mode);
+    if (el) { if (loading) el.classList.add('loading'); else el.classList.remove('loading'); }
+}
+
+function updateModeUI(mode) {
+    var modes = ['rule', 'global', 'direct'];
+    for (var i = 0; i < modes.length; i++) {
+        var el = document.getElementById('nf-mode-' + modes[i]);
+        if (el) { if (modes[i] === mode) el.classList.add('active'); else el.classList.remove('active'); }
+    }
+    var desc = document.getElementById('nf-mode-desc');
+    if (desc) desc.textContent = modeDescs[mode] || '';
+}
+
+window.nfTestDelay = function() {
+    if (!proxyRunning || !currentGroup) { showToast('请先启动代理', 'error'); return; }
+    debounce('delay', function() {
+        var btn = document.getElementById('nf-delay-btn');
+        setBtnLoading(btn, true);
+        var delayEls = document.querySelectorAll('#nf-node-list .nf-node-delay');
+        for (var i = 0; i < delayEls.length; i++) { delayEls[i].className = 'nf-node-delay testing'; delayEls[i].textContent = '测速中'; }
+
+        apiCall('test_delay', {group: currentGroup}, function(res) {
+            setBtnLoading(btn, false);
+            if (res.status === 'success' && res.data) {
+                delayResults = res.data;
+                applyDelayResults();
+                showToast('测速完成', 'success');
+            } else {
+                showToast(res.message || '测速失败', 'error');
+                var els = document.querySelectorAll('#nf-node-list .nf-node-delay');
+                for (var j = 0; j < els.length; j++) { els[j].className = 'nf-node-delay'; els[j].textContent = '-'; }
+            }
+        });
+    }, 3000);
+};
+
+function applyDelayResults() {
+    var items = document.querySelectorAll('#nf-node-list .nf-node-item');
+    for (var i = 0; i < items.length; i++) {
+        var name = items[i].getAttribute('data-node');
+        var delayEl = items[i].querySelector('.nf-node-delay');
+        if (!delayEl || !name) continue;
+        var delay = delayResults[name];
+        if (delay && delay > 0) {
+            delayEl.textContent = delay + 'ms';
+            if (delay < 200) delayEl.className = 'nf-node-delay fast';
+            else if (delay < 500) delayEl.className = 'nf-node-delay medium';
+            else delayEl.className = 'nf-node-delay slow';
+        } else if (delay === 0 || (delayResults.hasOwnProperty && delayResults.hasOwnProperty(name))) {
+            delayEl.textContent = '超时'; delayEl.className = 'nf-node-delay slow';
+        } else { delayEl.textContent = '-'; delayEl.className = 'nf-node-delay'; }
+    }
+}
+
+window.nfUpdateGeo = function() {
+    debounce('geo', function() {
+        var btn = document.getElementById('nf-geo-btn');
+        setBtnLoading(btn, true);
+        startLogPolling(true);
+        apiCall('update_geodata', null, function(res) {
+            setBtnLoading(btn, false);
+            startLogPolling(false);
+            if (res.status === 'success') showToast(res.message || 'GeoData 已更新', 'success');
+            else showToast(res.message || '更新失败', 'error');
+        });
+    });
+};
+
+window.nfClearLog = function() {
+    apiCall('clear_log', null, function() {
+        document.getElementById('nf-log-area').innerHTML = '<span style="color:var(--nf-text-dim)">日志已清除</span>';
+        showToast('日志已清除', 'info');
+    });
+};
+
+window.nfSwitchTun = function() {
+    var sw = document.getElementById('nf-tun-switch');
+    if (sw) sw.classList.add('disabled');
+    apiCall('switch_tun', null, function(res) {
+        if (sw) sw.classList.remove('disabled');
+        if (res.status === 'success') {
+            tunEnabled = (res.tun_enabled === '1');
+            updateTunUI();
+            showToast(res.message, res.need_restart ? 'info' : 'success');
+        } else { showToast(res.message || '切换失败', 'error'); }
+    });
+};
+
+var currentRunMode = 'fake-ip';
+var runModeDescs = {
+    'fake-ip': '标准兼容：透明重定向 + Fake-IP DNS，接近多数 OpenClash 默认 Redir 行为（非独立「第四档运行模式」）。',
+    'redir-host': '增强：DNS 为 redir-host（真实 IP），对应 OpenClash「增强」；仍走 Redir 透明代理。',
+    'tun': 'TUN：虚拟网卡 + DNS 使用 redir-host，纯 TUN、不设 Redir 端口与透明重定向规则。',
+    'mixed': '混合：TUN + Fake-IP DNS + Redir 端口，并启用透明重定向（与 OpenClash「混合」常见组合一致）。'
+};
+
+window.nfSwitchRunMode = function(mode) {
+    if (mode === currentRunMode) return;
+    var tabs = document.querySelectorAll('#nf-run-mode-tabs .nf-group-tab');
+    for (var i = 0; i < tabs.length; i++) tabs[i].classList.add('disabled');
+    apiCall('switch_run_mode', {run_mode: mode}, function(res) {
+        for (var i = 0; i < tabs.length; i++) tabs[i].classList.remove('disabled');
+        if (res.status === 'success') {
+            currentRunMode = mode;
+            updateRunModeUI();
+            showToast(res.message || '运行模式已切换', 'success');
+        } else {
+            showToast(res.message || '切换失败', 'error');
+        }
+    });
+};
+
+function updateRunModeUI() {
+    var mainIds = {'redir-host': 'nf-rm-redir-host', 'tun': 'nf-rm-tun', 'mixed': 'nf-rm-mixed'};
+    for (var m in mainIds) {
+        var el = document.getElementById(mainIds[m]);
+        if (el) { if (m === currentRunMode) el.classList.add('active'); else el.classList.remove('active'); }
+    }
+    var compat = document.getElementById('nf-rm-compat');
+    if (compat) {
+        if (currentRunMode === 'fake-ip') compat.classList.add('active');
+        else compat.classList.remove('active');
+    }
+    var desc = document.getElementById('nf-run-mode-desc');
+    if (desc) desc.textContent = runModeDescs[currentRunMode] || '';
+}
+
+window.nfSwitchGroup = function(name) {
+    currentGroup = name;
+    delayResults = {};
+    if (cachedGroups) {
+        var groups = filterGroupsByMode(cachedGroups);
+        renderGroupTabs(groups);
+        renderNodeList(groups);
+    } else { refreshNodes(); }
+};
+
+/* --- Page State --- */
+function showLogin() {
+    document.getElementById('nf-loading-screen').classList.add('nf-hidden');
+    document.getElementById('nf-dashboard-section').classList.add('nf-hidden');
+    document.getElementById('nf-dashboard-section').classList.remove('nf-fade-in');
+    var loginEl = document.getElementById('nf-login-section');
+    loginEl.classList.remove('nf-hidden');
+    setTimeout(function() { loginEl.classList.add('nf-fade-in'); }, 10);
+    if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
+    if (nodesRefreshTimer) { clearInterval(nodesRefreshTimer); nodesRefreshTimer = null; }
+    stopLogPolling();
+    stopStatsPolling();
+}
+
+/** 首次进入控制台：无字段则显示占位符 */
+function applyAccountPanelFull(data) {
+    if (!data) return;
+    document.getElementById('nf-user-email').textContent = data.email || '-';
+    document.getElementById('nf-user-expire').textContent = (data.expired_at !== undefined && data.expired_at !== null) ? formatTimestamp(data.expired_at) : '-';
+    document.getElementById('nf-user-used').textContent = (data.used_up !== undefined || data.used_down !== undefined) ? formatBytes((data.used_up || 0) + (data.used_down || 0)) : '-';
+    document.getElementById('nf-user-total').textContent = (data.transfer_enable !== undefined && data.transfer_enable !== null) ? formatBytes(data.transfer_enable) : '-';
+    var subTimeEl = document.getElementById('nf-last-sub-time');
+    if (subTimeEl) subTimeEl.textContent = data.last_subscribe ? '上次订阅更新: ' + data.last_subscribe : '';
+}
+
+/**
+ * 轮询 dashboard_status 时合并账户区：只更新响应里出现的字段，避免一次 API 失败把已有数据刷成「-」
+ * （此前 refreshDashboardStatus 从不写账户区，导致首次请求若缺流量/到期则永远不变）
+ */
+function mergeAccountPanelFromStatus(res) {
+    if (!res || res.status !== 'logged_in') return;
+    if (res.email) {
+        document.getElementById('nf-user-email').textContent = res.email;
+    }
+    if (Object.prototype.hasOwnProperty.call(res, 'expired_at')) {
+        document.getElementById('nf-user-expire').textContent = (res.expired_at !== undefined && res.expired_at !== null) ? formatTimestamp(res.expired_at) : '-';
+    }
+    if (Object.prototype.hasOwnProperty.call(res, 'used_up') || Object.prototype.hasOwnProperty.call(res, 'used_down')) {
+        document.getElementById('nf-user-used').textContent = formatBytes((res.used_up || 0) + (res.used_down || 0));
+    }
+    if (Object.prototype.hasOwnProperty.call(res, 'transfer_enable')) {
+        document.getElementById('nf-user-total').textContent = (res.transfer_enable !== undefined && res.transfer_enable !== null) ? formatBytes(res.transfer_enable) : '-';
+    }
+    if (res.last_subscribe) {
+        var subTimeEl = document.getElementById('nf-last-sub-time');
+        if (subTimeEl) subTimeEl.textContent = '上次订阅更新: ' + res.last_subscribe;
+    }
+}
+
+function showDashboard(data) {
+    document.getElementById('nf-loading-screen').classList.add('nf-hidden');
+    document.getElementById('nf-login-section').classList.add('nf-hidden');
+    document.getElementById('nf-login-section').classList.remove('nf-fade-in');
+    var dashEl = document.getElementById('nf-dashboard-section');
+    dashEl.classList.remove('nf-hidden');
+    setTimeout(function() { dashEl.classList.add('nf-fade-in'); }, 10);
+
+    if (data) {
+        applyAccountPanelFull(data);
+        updateWebsiteButton(data.website_url);
+    }
+
+    refreshDashboardStatus();
+    refreshNodes();
+    startLogPolling(false);
+    loadCoreStatus();
+
+    if (!refreshTimer) {
+        refreshTimer = setInterval(function() {
+            refreshDashboardStatus();
+        }, 10000);
+    }
+    if (!nodesRefreshTimer) {
+        nodesRefreshTimer = setInterval(function() {
+            if (proxyRunning && currentMode !== 'direct') { refreshNodes(); }
+        }, 30000);
+    }
+}
+
+function refreshDashboardStatus() {
+    apiCall('dashboard_status', null, function(res) {
+        if (res.status === 'not_logged_in') {
+            showLogin();
+            return;
+        }
+
+        var bar = document.getElementById('nf-proxy-status-bar');
+        var dot = document.getElementById('nf-status-dot');
+        var text = document.getElementById('nf-status-text');
+        var info = document.getElementById('nf-status-info');
+        var delayBtn = document.getElementById('nf-delay-btn');
+
+        mergeAccountPanelFromStatus(res);
+
+        if (res.running) {
+            proxyRunning = true;
+            bar.className = 'nf-status-bar running';
+            dot.className = 'nf-status-dot on';
+            text.textContent = '代理运行中';
+            if (currentMode === 'direct') {
+                info.textContent = '直连模式';
+            } else {
+                var barNode = res.current_node || '';
+                if (cachedGroups && currentGroup) {
+                    var fg = filterGroupsByMode(cachedGroups);
+                    for (var bi = 0; bi < fg.length; bi++) {
+                        if (fg[bi].name === currentGroup) {
+                            barNode = fg[bi].now || barNode;
+                            break;
+                        }
+                    }
+                }
+                info.textContent = barNode;
+            }
+            document.getElementById('nf-start-btn').classList.add('nf-hidden');
+            document.getElementById('nf-stop-btn').classList.remove('nf-hidden');
+            if (delayBtn) delayBtn.style.display = '';
+            if (!statsTimer) startStatsPolling();
+        } else {
+            proxyRunning = false;
+            bar.className = 'nf-status-bar stopped';
+            dot.className = 'nf-status-dot off';
+            text.textContent = '代理未运行';
+            info.textContent = res.mihomo_found ? '' : '未找到 Mihomo';
+            document.getElementById('nf-start-btn').classList.remove('nf-hidden');
+            document.getElementById('nf-stop-btn').classList.add('nf-hidden');
+            if (delayBtn) delayBtn.style.display = 'none';
+            stopStatsPolling();
+            resetStatsUI();
+            if (res.has_subscription) {
+                var nodeListEl = document.getElementById('nf-node-list');
+                if (nodeListEl && nodeListEl.textContent.indexOf('请先获取订阅') >= 0) {
+                    refreshNodes();
+                }
+            }
+        }
+
+        if (res.mode) {
+            var changed = (currentMode !== res.mode);
+            currentMode = res.mode;
+            updateModeUI(res.mode);
+            if (changed && cachedGroups) {
+                var groups = filterGroupsByMode(cachedGroups);
+                var gNames = groups.map(function(g) { return g.name; });
+                if (!currentGroup || gNames.indexOf(currentGroup) < 0) currentGroup = gNames[0] || '';
+                renderGroupTabs(groups);
+                renderNodeList(groups);
+                updateStatusBarNode(groups);
+            } else if (changed) { refreshNodes(); }
+        }
+
+        tunEnabled = (res.tun_enabled === '1');
+        updateTunUI();
+
+        if (res.run_mode) {
+            currentRunMode = res.run_mode;
+            updateRunModeUI();
+        }
+
+        if (res.lan_proxy !== undefined) {
+            lanProxyEnabled = (res.lan_proxy === '1');
+            updateLANProxyUI();
+        }
+        if (res.ipv6_proxy !== undefined) {
+            ipv6ProxyEnabled = (res.ipv6_proxy === '1');
+            updateIPv6ProxyUI();
+        }
+
+        mergeLANProxyHints(res);
+        applyCoreUpdateHint(res);
+    });
+}
+
+function nfEscapeHtml(s) {
+    if (s === undefined || s === null) return '';
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+/** 参考 OpenClash：在面板与核心卡片上提示「远端有新版本」（数据来自后端缓存 + 语义化版本比较） */
+function applyCoreUpdateHint(res) {
+    if (!res) return;
+    var bar = document.getElementById('nf-core-update-banner');
+    var latestEl = document.getElementById('nf-core-latest');
+    var lat = res.core_latest || res.latest;
+    if (latestEl && lat) latestEl.textContent = lat;
+    if (!bar) return;
+    var has = !!(res.core_has_update || res.has_update);
+    var stale = !!res.core_update_cache_stale;
+    if (!has) {
+        bar.classList.add('nf-hidden');
+        bar.innerHTML = '';
+        return;
+    }
+    bar.classList.remove('nf-hidden');
+    var ver = nfEscapeHtml(lat || '未知');
+    var sub = stale ? '<div class="nf-core-banner-sub">远端版本信息可能已过期，服务将自动重新检测。</div>' : '';
+    bar.innerHTML = '<div class="nf-core-banner-main"><span class="nf-core-banner-dot" aria-hidden="true"></span><div>核心有新版本 <strong>' + ver + '</strong>，请在下方选择下载源后点击「下载 / 更新核心」。</div></div>' + sub;
+}
+
+function mergeLANProxyHints(res) {
+    var hint = document.getElementById('nf-lan-proxy-hint');
+    var ipEl = document.getElementById('nf-lan-router-ip');
+    var portEl = document.getElementById('nf-lan-mixed-port');
+    if (!hint) return;
+    if (ipEl) ipEl.textContent = res.lan_router_ip || '—';
+    if (portEl) portEl.textContent = res.lan_mixed_port || '7890';
+    if (res.lan_proxy === '1') {
+        hint.classList.remove('nf-hidden');
+    } else {
+        hint.classList.add('nf-hidden');
+    }
+}
+
+function isGlobalGroup(name) { return name === 'GLOBAL' || name === 'global'; }
+
+/** 仅 Selector(select) 可手动选节点；URLTest/Fallback/LoadBalance 由核心自动改「当前」 */
+function isManualSelectorGroup(t) { return t === 'Selector'; }
+
+function policyGroupHint(t) {
+    if (t === 'URLTest') return '自动测速';
+    if (t === 'Fallback') return '自动故障转移';
+    if (t === 'LoadBalance') return '负载均衡';
+    return '自动';
+}
+
+function filterGroupsByMode(groups) {
+    var filtered = [];
+    for (var i = 0; i < groups.length; i++) {
+        if (currentMode === 'global') { if (isGlobalGroup(groups[i].name)) filtered.push(groups[i]); }
+        else { if (!isGlobalGroup(groups[i].name)) filtered.push(groups[i]); }
+    }
+    return filtered;
+}
+
+function isPolicyProxyGroup(p) {
+    if (!p || !p.type) return false;
+    return p.type === 'Selector' || p.type === 'URLTest' || p.type === 'Fallback' || p.type === 'LoadBalance';
+}
+
+/** 按订阅 proxy-groups 顺序（后端 proxy_group_order）组 Tab，避免 Go JSON map 字典序导致 A-Z */
+function buildPolicyGroupsList(nodesData, order) {
+    var allGroups = [];
+    var seen = {};
+    if (order && order.length) {
+        for (var oi = 0; oi < order.length; oi++) {
+            var name = order[oi];
+            var p = nodesData[name];
+            if (!p || !isPolicyProxyGroup(p)) continue;
+            allGroups.push({name: name, type: p.type, now: p.now, all: p.all || []});
+            seen[name] = true;
+        }
+    }
+    var rest = [];
+    for (var name in nodesData) {
+        if (seen[name]) continue;
+        var p = nodesData[name];
+        if (!isPolicyProxyGroup(p)) continue;
+        rest.push({name: name, type: p.type, now: p.now, all: p.all || []});
+    }
+    rest.sort(function(a, b) { return a.name.localeCompare(b.name); });
+    return allGroups.concat(rest);
+}
+
+function refreshNodes() {
+    var nodesInner = document.querySelector('#nf-nodes-card .nf-nodes-inner');
+    if (currentMode === 'direct') {
+        if (nodesInner) nodesInner.classList.add('nf-hidden');
+        return;
+    }
+    if (nodesInner) nodesInner.classList.remove('nf-hidden');
+
+    apiCall('nodes', null, function(res) {
+        if (res.status !== 'success') {
+            document.getElementById('nf-node-list').innerHTML = '<div style="text-align:center;color:var(--nf-text-dim);padding:20px;grid-column:1/-1;">' + escapeHtml(res.message || '暂无节点，请先获取订阅') + '</div>';
+            document.getElementById('nf-group-tabs').innerHTML = '';
+            return;
+        }
+        if (res.source === 'offline') {
+            document.getElementById('nf-node-list').innerHTML = '<div style="text-align:center;color:var(--nf-text-dim);padding:20px;grid-column:1/-1;">代理未运行，已有订阅数据。请启动代理后查看节点。</div>';
+            document.getElementById('nf-group-tabs').innerHTML = '';
+            return;
+        }
+        if (res.source === 'api' && res.data && res.data.proxies) {
+            nodesData = res.data.proxies;
+            var order = res.data.proxy_group_order;
+            var allGroups = buildPolicyGroupsList(nodesData, order);
+            if (allGroups.length === 0) {
+                document.getElementById('nf-node-list').innerHTML = '<div style="text-align:center;color:var(--nf-text-dim);padding:20px;grid-column:1/-1;">未找到代理分组，请检查订阅内容</div>';
+                document.getElementById('nf-group-tabs').innerHTML = '';
+                return;
+            }
+            cachedGroups = allGroups;
+            var groups = filterGroupsByMode(allGroups);
+            if (groups.length === 0) {
+                document.getElementById('nf-node-list').innerHTML = '<div style="text-align:center;color:var(--nf-text-dim);padding:20px;grid-column:1/-1;">当前模式无可用分组</div>';
+                document.getElementById('nf-group-tabs').innerHTML = '';
+                return;
+            }
+            var gNames = groups.map(function(g) { return g.name; });
+            if (!currentGroup || gNames.indexOf(currentGroup) < 0) currentGroup = gNames[0];
+            renderGroupTabs(groups);
+            renderNodeList(groups);
+            updateStatusBarNode(groups);
+        }
+    });
+}
+
+function updateStatusBarNode(groups) {
+    if (!proxyRunning) return;
+    var info = document.getElementById('nf-status-info');
+    if (!info) return;
+    if (currentMode === 'direct') {
+        info.textContent = '直连模式';
+        return;
+    }
+    var targetGroup = null;
+    for (var i = 0; i < groups.length; i++) {
+        if (groups[i].name === currentGroup) { targetGroup = groups[i]; break; }
+    }
+    if (!targetGroup && groups.length > 0) targetGroup = groups[0];
+    if (targetGroup && targetGroup.now) info.textContent = targetGroup.now;
+}
+
+function renderGroupTabs(groups) {
+    var container = document.getElementById('nf-group-tabs');
+    var html = '';
+    for (var i = 0; i < groups.length; i++) {
+        var g = groups[i];
+        var cls = g.name === currentGroup ? 'nf-group-tab active' : 'nf-group-tab';
+        var badge = '';
+        if (!isManualSelectorGroup(g.type)) {
+            badge = '<span class="nf-group-auto-badge">' + escapeHtml(policyGroupHint(g.type)) + '</span>';
+        }
+        html += '<div class="' + cls + '" onclick="nfSwitchGroup(\'' + escapeJs(g.name) + '\')">' + escapeHtml(g.name) + badge + '</div>';
+    }
+    container.innerHTML = html;
+}
+
+function renderNodeList(groups) {
+    var container = document.getElementById('nf-node-list');
+    var group = null;
+    for (var i = 0; i < groups.length; i++) { if (groups[i].name === currentGroup) { group = groups[i]; break; } }
+    if (!group) { container.innerHTML = ''; return; }
+    var manual = isManualSelectorGroup(group.type);
+    var html = '';
+    if (!manual) {
+        html += '<div class="nf-auto-group-hint">此策略组类型为「' + escapeHtml(policyGroupHint(group.type)) + '」，当前出口由 Mihomo 按延迟/优先级自动切换，与 OpenClash 一致；若需固定线路，请在订阅中把该组改为 <b>select</b>，或在其下的 <b>Selector</b> 子策略里选择节点。</div>';
+    }
+    var nodes = group.all;
+    for (var j = 0; j < nodes.length; j++) {
+        var nodeName = nodes[j];
+        var isActive = proxyRunning && nodeName === group.now;
+        var isPreselected = !proxyRunning && nodeName === group.now;
+        var nodeInfo = nodesData[nodeName];
+        var nodeType = nodeInfo ? nodeInfo.type : '';
+        var delay = nodeInfo && nodeInfo.history && nodeInfo.history.length > 0 ? nodeInfo.history[nodeInfo.history.length - 1].delay : 0;
+        var savedDelay = delayResults[nodeName];
+        if (savedDelay && savedDelay > 0) delay = savedDelay;
+        var delayClass = '', delayText = '-';
+        if (delay > 0) {
+            delayText = delay + 'ms';
+            if (delay < 200) delayClass = 'fast';
+            else if (delay < 500) delayClass = 'medium';
+            else delayClass = 'slow';
+        }
+        var itemClass = 'nf-node-item';
+        if (!manual) itemClass += ' nf-node-readonly';
+        if (isActive) itemClass += ' active';
+        else if (isPreselected) itemClass += ' preselected';
+
+        var clickPart = manual
+            ? ' onclick="nfSelectNode(\'' + escapeJs(currentGroup) + '\',\'' + escapeJs(nodeName) + '\',this)"'
+            : '';
+        html += '<div class="' + itemClass + '" data-node="' + escapeHtml(nodeName) + '"' + clickPart + '>';
+        if (isActive) html += '<span class="nf-node-active-dot"></span>';
+        else if (isPreselected) html += '<span class="nf-node-preselect-dot"></span>';
+        html += '<div class="nf-node-info"><div class="nf-node-name"><span>' + escapeHtml(nodeName) + '</span></div>';
+        if (nodeType && nodeType !== 'Selector' && nodeType !== 'URLTest') {
+            html += '<div class="nf-node-type">' + escapeHtml(nodeType) + '</div>';
+        }
+        html += '</div>';
+        html += '<span class="nf-node-delay ' + delayClass + '">' + delayText + '</span>';
+        html += '</div>';
+    }
+    container.innerHTML = html || '<div style="text-align:center;color:var(--nf-text-dim);padding:20px;grid-column:1/-1;">暂无节点</div>';
+    setTimeout(function() {
+        var names = container.querySelectorAll('.nf-node-name');
+        for (var ni = 0; ni < names.length; ni++) {
+            var s = names[ni].querySelector('span');
+            if (s && s.scrollWidth > names[ni].clientWidth) {
+                s.style.setProperty('--nf-scroll-x', -(s.scrollWidth - names[ni].clientWidth) + 'px');
+            }
+        }
+    }, 50);
+}
+
+function refreshLog() {
+    apiCall('log', null, function(res) {
+        if (res.status === 'success' && res.log) {
+            var area = document.getElementById('nf-log-area');
+            var raw = res.log.replace(/\\n/g, '\n');
+            var lines = raw.split('\n');
+            var html = '';
+            for (var i = 0; i < lines.length; i++) {
+                var line = escapeHtml(lines[i]);
+                if (!line) continue;
+                if (line.indexOf('[ERROR]') >= 0) html += '<div class="nf-log-line-error">' + line + '</div>';
+                else if (line.indexOf('[WARN]') >= 0) html += '<div class="nf-log-line-warn">' + line + '</div>';
+                else if (line.indexOf('[INFO]') >= 0) html += '<div class="nf-log-line-info">' + line + '</div>';
+                else html += '<div>' + line + '</div>';
+            }
+            area.innerHTML = html || '<span style="color:var(--nf-text-dim)">暂无日志</span>';
+            area.scrollTop = area.scrollHeight;
+        }
+    });
+}
+
+function refreshStats() {
+    if (!proxyRunning) return;
+    apiCall('sys_status', null, function(res) {
+        if (res.status === 'success') {
+            setStatValue('nf-stat-up-speed', formatSpeed(res.up_speed));
+            setStatValue('nf-stat-down-speed', formatSpeed(res.down_speed));
+            setStatValue('nf-stat-up-total', formatBytes(res.up_total));
+            setStatValue('nf-stat-down-total', formatBytes(res.down_total));
+            setStatValue('nf-stat-connections', String(res.connections || 0));
+            setStatValue('nf-stat-memory', (res.memory || '0') + '%');
+            setStatValue('nf-stat-cpu', (res.cpu || '0') + '%');
+            setStatValue('nf-stat-load', res.load || '0');
+        }
+    });
+}
+
+function setStatValue(id, val) {
+    var el = document.getElementById(id);
+    if (el) { el.textContent = val; el.className = 'nf-stat-value'; }
+}
+
+function resetStatsUI() {
+    var ids = ['nf-stat-up-speed','nf-stat-down-speed','nf-stat-up-total','nf-stat-down-total',
+               'nf-stat-connections','nf-stat-memory','nf-stat-cpu','nf-stat-load'];
+    for (var i = 0; i < ids.length; i++) {
+        var el = document.getElementById(ids[i]);
+        if (el) { el.textContent = '- -'; el.className = 'nf-stat-value inactive'; }
+    }
+}
+
+function updateTunUI() {
+    var sw = document.getElementById('nf-tun-switch');
+    var desc = document.getElementById('nf-tun-desc');
+    if (sw) { if (tunEnabled) sw.classList.add('on'); else sw.classList.remove('on'); }
+    if (desc) desc.textContent = tunEnabled ? '当前: TUN 模式 (虚拟网卡)' : '当前: 重定向模式 (redir)';
+}
+
+/* --- Core Management --- */
+window.nfCheckCoreUpdate = function() {
+    debounce('core_check', function() {
+        var btn = document.getElementById('nf-core-check-btn');
+        setBtnLoading(btn, true);
+        apiCall('core_check_update', null, function(res) {
+            setBtnLoading(btn, false);
+            if (res.status === 'success') {
+                document.getElementById('nf-core-latest').textContent = res.latest || '-';
+                if (res.current) document.getElementById('nf-core-version').textContent = res.current;
+                if (res.has_update) {
+                    showToast('有新版本可用: ' + res.latest, 'info');
+                } else if (res.current) {
+                    showToast('已是最新版本', 'success');
+                }
+                loadCoreStatus();
+            } else {
+                showToast(res.message || '检查更新失败', 'error');
+            }
+        });
+    });
+};
+
+function loadCoreStatus() {
+    apiCall('core_status', null, function(res) {
+        if (res.status !== 'success') return;
+        var statusEl = document.getElementById('nf-core-status');
+        var archEl = document.getElementById('nf-core-arch');
+        var versionEl = document.getElementById('nf-core-version');
+        if (archEl) archEl.textContent = res.device_arch || '-';
+        if (res.installed) {
+            if (statusEl) { statusEl.textContent = '已安装'; statusEl.style.color = 'var(--nf-success)'; }
+            if (versionEl) versionEl.textContent = res.version || '-';
+        } else {
+            if (statusEl) { statusEl.textContent = '未安装'; statusEl.style.color = 'var(--nf-danger)'; }
+            if (versionEl) versionEl.textContent = '-';
+        }
+        var select = document.getElementById('nf-core-source');
+        if (select && res.sources && res.sources.length > 0) {
+            select.innerHTML = '';
+            for (var i = 0; i < res.sources.length; i++) {
+                var opt = document.createElement('option');
+                opt.value = res.sources[i].id;
+                opt.textContent = res.sources[i].name;
+                select.appendChild(opt);
+            }
+        }
+        applyCoreUpdateHint(res);
+    });
+}
+
+window.nfDownloadCore = function() {
+    debounce('core_dl', function() {
+        var source = document.getElementById('nf-core-source').value;
+        var btn = document.getElementById('nf-core-download-btn');
+        setBtnLoading(btn, true);
+        apiCall('core_download', {source: source}, function(res) {
+            if (res.status === 'success') {
+                showToast('开始下载核心...', 'info');
+                document.getElementById('nf-core-progress-wrap').classList.remove('nf-hidden');
+                startCoreProgressPolling();
+            } else {
+                setBtnLoading(btn, false);
+                showToast(res.message || '下载失败', 'error');
+            }
+        });
+    }, 2000);
+};
+
+function startCoreProgressPolling() {
+    if (coreProgressTimer) clearInterval(coreProgressTimer);
+    coreProgressTimer = setInterval(pollCoreProgress, 1000);
+}
+
+function pollCoreProgress() {
+    apiCall('core_progress', null, function(res) {
+        if (res.status !== 'success') return;
+        var bar = document.getElementById('nf-core-progress-bar');
+        var text = document.getElementById('nf-core-progress-text');
+        var btn = document.getElementById('nf-core-download-btn');
+        bar.style.width = res.download_percent + '%';
+        bar.className = 'nf-progress-bar-inner';
+        text.textContent = res.download_message || '';
+
+        if (res.download_status === 'done') {
+            bar.classList.add('done');
+            setBtnLoading(btn, false);
+            clearInterval(coreProgressTimer);
+            coreProgressTimer = null;
+            showToast(res.download_message || '核心安装成功', 'success');
+            setTimeout(function() {
+                loadCoreStatus();
+                document.getElementById('nf-core-progress-wrap').classList.add('nf-hidden');
+            }, 3000);
+        } else if (res.download_status === 'error') {
+            bar.classList.add('error');
+            setBtnLoading(btn, false);
+            clearInterval(coreProgressTimer);
+            coreProgressTimer = null;
+            showToast(res.download_message || '下载失败', 'error');
+        }
+    });
+}
+
+/* --- Core Upload --- */
+window.nfUploadCore = function(input) {
+    if (!input.files || !input.files[0]) return;
+    var file = input.files[0];
+    if (file.size < 1024) {
+        showToast('文件太小，不是有效的核心文件', 'error');
+        input.value = '';
+        return;
+    }
+    if (file.size > 100 * 1024 * 1024) {
+        showToast('文件超过 100MB，请检查是否选错文件', 'error');
+        input.value = '';
+        return;
+    }
+
+    var btn = document.getElementById('nf-core-upload-btn');
+    var origText = btn.textContent;
+    btn.textContent = '上传中...';
+    btn.disabled = true;
+
+    var formData = new FormData();
+    formData.append('corefile', file);
+
+    var token = document.querySelector('input[name="token"]');
+    if (token) formData.append('token', token.value);
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', '<%=luci.dispatcher.build_url("admin","services","netflow","upload_core")%>', true);
+    xhr.onload = function() {
+        btn.textContent = origText;
+        btn.disabled = false;
+        input.value = '';
+        try {
+            var res = JSON.parse(xhr.responseText);
+            if (res.status === 'success') {
+                showToast(res.message || '核心上传安装成功', 'success');
+                loadCoreStatus();
+            } else {
+                showToast(res.message || '上传失败', 'error');
+            }
+        } catch(e) {
+            showToast('上传失败：服务器响应异常', 'error');
+        }
+    };
+    xhr.onerror = function() {
+        btn.textContent = origText;
+        btn.disabled = false;
+        input.value = '';
+        showToast('上传失败：网络错误', 'error');
+    };
+    xhr.send(formData);
+};
+
+/* --- LAN Proxy --- */
+window.nfSwitchLANProxy = function() {
+    var sw = document.getElementById('nf-lan-proxy-switch');
+    if (sw) sw.classList.add('disabled');
+    apiCall('switch_lan_proxy', null, function(res) {
+        if (sw) sw.classList.remove('disabled');
+        if (res.status === 'success') {
+            lanProxyEnabled = (res.lan_proxy === '1');
+            updateLANProxyUI();
+            refreshDashboardStatus();
+            showToast(res.message, 'success');
+        } else {
+            showToast(res.message || '切换失败', 'error');
+        }
+    });
+};
+
+function updateLANProxyUI() {
+    var sw = document.getElementById('nf-lan-proxy-switch');
+    var desc = document.getElementById('nf-lan-proxy-desc');
+    var hint = document.getElementById('nf-lan-proxy-hint');
+    if (sw) { if (lanProxyEnabled) sw.classList.add('on'); else sw.classList.remove('on'); }
+    if (desc) desc.textContent = lanProxyEnabled ? '已开启，局域网设备流量走代理' : '已关闭，仅路由器本机走代理';
+    if (hint && !lanProxyEnabled) hint.classList.add('nf-hidden');
+}
+
+/* --- IPv6 Proxy --- */
+window.nfSwitchIPv6Proxy = function() {
+    var sw = document.getElementById('nf-ipv6-proxy-switch');
+    if (sw) sw.classList.add('disabled');
+    apiCall('switch_ipv6_proxy', null, function(res) {
+        if (sw) sw.classList.remove('disabled');
+        if (res.status === 'success') {
+            ipv6ProxyEnabled = (res.ipv6_proxy === '1');
+            updateIPv6ProxyUI();
+            showToast(res.message, 'success');
+        } else {
+            showToast(res.message || '切换失败', 'error');
+        }
+    });
+};
+
+function updateIPv6ProxyUI() {
+    var sw = document.getElementById('nf-ipv6-proxy-switch');
+    var desc = document.getElementById('nf-ipv6-proxy-desc');
+    if (sw) { if (ipv6ProxyEnabled) sw.classList.add('on'); else sw.classList.remove('on'); }
+    if (desc) desc.textContent = ipv6ProxyEnabled ? '已开启，IPv6 流量走代理' : '已关闭，仅代理 IPv4 流量';
+}
+
+var _checkRetry = 0;
+var _checkMaxRetry = 5;
+var _checkRetryDelay = 3000;
+
+window.nfOpenWebsite = function() {
+    if (websiteURL) window.open(websiteURL, '_blank');
+};
+
+function updateWebsiteButton(url) {
+    websiteURL = url || '';
+    var btn = document.getElementById('nf-website-btn');
+    if (!btn) return;
+    if (websiteURL) {
+        btn.classList.remove('nf-hidden');
+    } else {
+        btn.classList.add('nf-hidden');
+    }
+}
+
+function checkStatus() {
+    apiCall('v2board_status', null, function(res) {
+        if (res.status === 'logged_in') {
+            _checkRetry = 0;
+            showDashboard(res);
+        } else if (res.status === 'error' && res.message && res.message.indexOf('后端') >= 0 && _checkRetry < _checkMaxRetry) {
+            _checkRetry++;
+            var loadingText = document.querySelector('#nf-loading-screen span');
+            if (loadingText) loadingText.textContent = '正在等待后端启动... (' + _checkRetry + '/' + _checkMaxRetry + ')';
+            setTimeout(checkStatus, _checkRetryDelay);
+        } else {
+            _checkRetry = 0;
+            showLogin();
+            if (res.email) document.getElementById('nf-email').value = res.email;
+            if (res.status === 'error' && res.message) showToast(res.message, 'error');
+        }
+    });
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escapeJs(str) {
+    if (!str) return '';
+    return str.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+}
+
+document.getElementById('nf-password').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') nfLogin();
+});
+
+(function detectTheme() {
+    var app = document.getElementById('netflow-app');
+    if (!app) return;
+    try {
+        var body = document.body;
+        var bg = window.getComputedStyle(body).backgroundColor;
+        var m = bg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+        if (m) {
+            var brightness = (parseInt(m[1]) * 299 + parseInt(m[2]) * 587 + parseInt(m[3]) * 114) / 1000;
+            if (brightness > 128) app.classList.add('nf-light');
+        } else if (bg === 'transparent' || bg === '') {
+            var parent = app.parentElement;
+            while (parent && parent !== document.documentElement) {
+                var pbg = window.getComputedStyle(parent).backgroundColor;
+                var pm = pbg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+                if (pm) {
+                    var pb = (parseInt(pm[1]) * 299 + parseInt(pm[2]) * 587 + parseInt(pm[3]) * 114) / 1000;
+                    if (pb > 128) app.classList.add('nf-light');
+                    break;
+                }
+                parent = parent.parentElement;
+            }
+        }
+    } catch(e) {}
+})();
+
+checkStatus();
+
+})();
+</script>
+
+<%+footer%>

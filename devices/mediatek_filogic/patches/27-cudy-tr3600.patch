@@ -75,7 +75,7 @@ index 494837a..c1ac9a8 100644
 +	fit lzma $$(KDIR)/image-$$(firstword $$(DEVICE_DTS)).dtb
 +  KERNEL_INITRAMFS = kernel-bin | lzma | \
 +	fit lzma $$(KDIR)/image-$$(firstword $$(DEVICE_DTS)).dtb with-initrd
-+  IMAGE_SIZE := 65536k
++  IMAGE_SIZE := 98304k
 +  IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
 +  DEVICE_PACKAGES := mt7987-2p5g-phy-firmware kmod-mt7990-firmware \
 +	kmod-hwmon-pwmfan kmod-usb3

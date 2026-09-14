@@ -1,0 +1,16 @@
+#!/bin/sh
+# KuliCloud (netflow) baked into rootfs overlay; replicate ipk postinst steps.
+
+ln -sf /usr/bin/netflow_aarch64 /usr/bin/netflow
+
+mkdir -p /etc/netflow/mihomo /etc/netflow/v2board
+
+if [ ! -s /etc/netflow/.dev_salt ]; then
+	head -c 32 /dev/urandom | hexdump -e '32/1 "%02x"' > /etc/netflow/.dev_salt
+	chmod 600 /etc/netflow/.dev_salt
+fi
+
+chmod +x /etc/init.d/netflow /usr/bin/netflow_aarch64
+/etc/init.d/netflow enable
+
+exit 0

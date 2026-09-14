@@ -1,0 +1,11 @@
+{
+	"luci-app-KuliCloud": {
+		"description": "Grant UCI access for NetFlow LuCI application",
+		"read": {
+			"uci": ["netflow"]
+		},
+		"write": {
+			"uci": ["netflow"]
+		}
+	}
+}
