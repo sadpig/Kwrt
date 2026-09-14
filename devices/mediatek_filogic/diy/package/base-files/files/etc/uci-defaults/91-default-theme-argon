@@ -1,0 +1,5 @@
+#!/bin/sh
+# fork-local: make Argon the default LuCI theme
+uci -q set luci.main.mediaurlbase='/luci-static/argon'
+uci -q commit luci
+exit 0
