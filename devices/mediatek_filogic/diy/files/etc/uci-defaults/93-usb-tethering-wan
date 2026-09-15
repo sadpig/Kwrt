@@ -1,0 +1,28 @@
+#!/bin/sh
+# USB tethering WAN for ZTE 5G hotspot (RNDIS -> usb0, CDC-NCM -> wwan0).
+# Wired WAN (if any) keeps priority via lower metric.
+
+add_iface() { # $1=name $2=device $3=metric
+	uci -q get "network.$1" >/dev/null && return 0
+	uci set "network.$1=interface"
+	uci set "network.$1.proto=dhcp"
+	uci set "network.$1.device=$2"
+	uci set "network.$1.metric=$3"
+	uci set "network.$1.defaultroute=1"
+	uci set "network.$1.peerdns=1"
+}
+
+add_iface wanusb  usb0  20
+add_iface wanusb2 wwan0 21
+uci commit network
+
+# attach both to the existing wan firewall zone
+for z in $(uci -q show firewall | sed -n "s/^firewall\.\(@zone\[[0-9]*\]\)\.name='wan'$/\1/p"); do
+	uci -q del_list "firewall.$z.network=wanusb"
+	uci -q del_list "firewall.$z.network=wanusb2"
+	uci add_list "firewall.$z.network=wanusb"
+	uci add_list "firewall.$z.network=wanusb2"
+done
+uci commit firewall
+
+exit 0
