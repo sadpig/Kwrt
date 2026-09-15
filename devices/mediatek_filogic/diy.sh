@@ -23,9 +23,11 @@ for f in feeds/kiddin9/my-default-settings/files/etc/uci-defaults/99-default-set
 	[ -f "$f" ] && sed -i -e "s/Kwrt/Twrt/g" -e "s/kwrt/twrt/g" -e "s/10\.0\.0\./10.10.8./g" "$f" || true
 done
 
-# fix duplicated "首页" menu: quickstart registers via both menu.d JSON and the
-# legacy Lua controller; with luci-lua-runtime present both render. Drop the Lua one.
-sed -i '/entry({"admin", "quickstart"}, template("quickstart\/home")).leaf = true/d' \
-	feeds/kiddin9/luci-app-quickstart/luasrc/controller/quickstart.lua || true
+# fix duplicated "首页" menu: luci-app-wizard registers a visible "Home"(首页)
+# top menu at admin/index which just redirects to admin/quickstart, while
+# luci-app-quickstart's menu.d JSON already shows "QuickStart"(首页).
+# Hide wizard's menu title (keep the landing redirect working).
+sed -i 's/, _("Home") , 1).dependent = false/).dependent = false/' \
+	feeds/kiddin9/luci-app-wizard/luasrc/controller/wizard.lua || true
 
 exit 0
