@@ -30,4 +30,14 @@ done
 sed -i 's/, _("Home") , 1).dependent = false/).dependent = false/' \
 	feeds/kiddin9/luci-app-wizard/luasrc/controller/wizard.lua || true
 
+# vendor iStore from upstream into core package/ dir: the kiddin9-feed copy
+# installs but its config symbol never appears after defconfig (feed index
+# polluted by broken webd Makefile); core packages take precedence and always
+# get indexed.
+git clone --depth 1 https://github.com/linkease/istore.git /tmp/istore-src && {
+	mkdir -p package/istore
+	cp -a /tmp/istore-src/luci/* package/istore/
+	rm -rf /tmp/istore-src
+}
+
 exit 0
