@@ -12,16 +12,19 @@ add_iface() { # $1=name $2=device $3=metric
 	uci set "network.$1.peerdns=1"
 }
 
-add_iface wanusb  usb0  20
-add_iface wanusb2 wwan0 21
+# on TR3600 the gmacs are named wan/lan, so a USB NIC (RNDIS or CDC-Ether,
+# e.g. ZTE F50) grabs the free "eth0" name; usb0/wwan0 cover other drivers.
+add_iface wanusb  eth0  20
+add_iface wanusb2 usb0  21
+add_iface wanusb3 wwan0 22
 uci commit network
 
 # attach both to the existing wan firewall zone
 for z in $(uci -q show firewall | sed -n "s/^firewall\.\(@zone\[[0-9]*\]\)\.name='wan'$/\1/p"); do
-	uci -q del_list "firewall.$z.network=wanusb"
-	uci -q del_list "firewall.$z.network=wanusb2"
-	uci add_list "firewall.$z.network=wanusb"
-	uci add_list "firewall.$z.network=wanusb2"
+	for n in wanusb wanusb2 wanusb3; do
+		uci -q del_list "firewall.$z.network=$n"
+		uci add_list "firewall.$z.network=$n"
+	done
 done
 uci commit firewall
 
