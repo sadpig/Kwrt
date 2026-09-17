@@ -1,0 +1,16 @@
+Align the packages feed default Go version with the kiddin9 feed golang
+(1.27). Mixed feeds otherwise make Go consumer packages (geoview,
+sing-box, ...) look for hostpkg lib/go-1.26 while only go-1.27 is built,
+falling back to the runner's outdated system Go.
+
+--- a/feeds/packages/lang/golang/golang-values.mk
++++ b/feeds/packages/lang/golang/golang-values.mk
+@@ -124,7 +124,7 @@
+   GOBOOTSTRAP_TOOLEXEC
+ 
+ 
+-GO_DEFAULT_VERSION:=1.26
++GO_DEFAULT_VERSION:=1.27
+ GO_HOST_VERSION:=$(patsubst golang%/host,%,$(filter golang%/host,$(PKG_BUILD_DEPENDS)))
+ ifeq ($(GO_HOST_VERSION),)
+   GO_HOST_VERSION:=$(GO_DEFAULT_VERSION)
