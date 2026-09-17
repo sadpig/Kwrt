@@ -1,0 +1,87 @@
+diff --git a/package/boot/uboot-tools/uboot-envtools/files/mediatek_filogic b/package/boot/uboot-tools/uboot-envtools/files/mediatek_filogic
+index 9385520..f74ea64 100644
+--- a/package/boot/uboot-tools/uboot-envtools/files/mediatek_filogic
++++ b/package/boot/uboot-tools/uboot-envtools/files/mediatek_filogic
+@@ -68,6 +68,9 @@ zyxel,ex5601-t0-ubootmod|\
+ zyxel,wx5600-t0-ubootmod)
+ 	ubootenv_add_ubi_default
+ 	;;
++cudy,tr3600-v1)
++	ubootenv_add_uci_config "/dev/ubi0_0" "0x0" "0x80000" "0x80000" "1"
++	;;
+ acer,predator-w6|\
+ acer,predator-w6d|\
+ acer,vero-w6m|\
+diff --git a/target/linux/mediatek/filogic/base-files/etc/board.d/02_network b/target/linux/mediatek/filogic/base-files/etc/board.d/02_network
+index 47ae9aa..ff42b69 100644
+--- a/target/linux/mediatek/filogic/base-files/etc/board.d/02_network
++++ b/target/linux/mediatek/filogic/base-files/etc/board.d/02_network
+@@ -159,6 +159,9 @@ mediatek_setup_interfaces()
+ 	wavlink,wl-wnt100x3-ubootmod)
+ 		ucidef_set_interfaces_lan_wan eth0 eth1
+ 		;;
++	cudy,tr3600-v1)
++		ucidef_set_interfaces_lan_wan lan wan
++		;;
+ 	bazis,ax3000wm|\
+ 	cudy,m3000-v1|\
+ 	cudy,m3000-v1-ubootmod|\
+diff --git a/target/linux/mediatek/filogic/base-files/lib/upgrade/platform.sh b/target/linux/mediatek/filogic/base-files/lib/upgrade/platform.sh
+index 3ded876..1a6f737 100644
+--- a/target/linux/mediatek/filogic/base-files/lib/upgrade/platform.sh
++++ b/target/linux/mediatek/filogic/base-files/lib/upgrade/platform.sh
+@@ -144,6 +144,19 @@ platform_do_upgrade() {
+ 	zyxel,wx5600-t0-ubootmod)
+ 		fit_do_upgrade "$1"
+ 		;;
++	cudy,tr3600-v1)
++		local slot kern_part root_part
++		slot="$(cat /sys/module/boot_param/parameters/upgrade_image_slot 2>/dev/null)"
++		kern_part="$(cat /sys/module/boot_param/parameters/upgrade_kernel_part 2>/dev/null)"
++		root_part="$(cat /sys/module/boot_param/parameters/upgrade_rootfs_part 2>/dev/null)"
++		CI_KERNPART="${kern_part:-kernel}"
++		CI_ROOTPART="${root_part:-rootfs}"
++		[ -n "$slot" ] && {
++			fw_setenv "dual_boot.current_slot" "$slot"
++			fw_setenv "dual_boot.slot_${slot}_invalid" "0"
++		}
++		nand_do_upgrade "$1"
++		;;
+ 	acer,predator-w6|\
+ 	acer,predator-w6d|\
+ 	acer,vero-w6m|\
+diff --git a/target/linux/mediatek/image/filogic.mk b/target/linux/mediatek/image/filogic.mk
+index 494837a..c1ac9a8 100644
+--- a/target/linux/mediatek/image/filogic.mk
++++ b/target/linux/mediatek/image/filogic.mk
+@@ -1282,6 +1282,30 @@ define Device/cudy_tr3000-v1
+ endef
+ TARGET_DEVICES += cudy_tr3000-v1
+ 
++define Device/cudy_tr3600-v1
++  DEVICE_VENDOR := Cudy
++  DEVICE_MODEL := TR3600
++  DEVICE_VARIANT := v1
++  DEVICE_DTS := mt7987b-cudy-tr3600-v1
++  DEVICE_DTS_DIR := ../dts
++  SUPPORTED_DEVICES += R126
++  UBINIZE_OPTS := -E 5
++  BLOCKSIZE := 128k
++  PAGESIZE := 2048
++  KERNEL_IN_UBI := 1
++  KERNEL_SIZE := 6144k
++  KERNEL_LOADADDR := 0x40000000
++  KERNEL = kernel-bin | lzma | \
++	fit lzma $$(KDIR)/image-$$(firstword $$(DEVICE_DTS)).dtb
++  KERNEL_INITRAMFS = kernel-bin | lzma | \
++	fit lzma $$(KDIR)/image-$$(firstword $$(DEVICE_DTS)).dtb with-initrd
++  IMAGE_SIZE := 98304k
++  IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
++  DEVICE_PACKAGES := mt7987-2p5g-phy-firmware kmod-mt7990-firmware \
++	kmod-hwmon-pwmfan kmod-usb3
++endef
++TARGET_DEVICES += cudy_tr3600-v1
++
+ define Device/cudy_tr3000-mod
+   DEVICE_VENDOR := Cudy
+   DEVICE_MODEL := TR3000
