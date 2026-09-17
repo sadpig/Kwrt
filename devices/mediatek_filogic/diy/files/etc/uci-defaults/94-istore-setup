@@ -1,0 +1,10 @@
+#!/bin/sh
+# iStore baked into rootfs overlay; replicate default_postinst essentials.
+
+chmod +x /etc/init.d/istore /bin/is-opkg /usr/libexec/istore/* 2>/dev/null
+/etc/init.d/istore enable 2>/dev/null
+
+rm -f /tmp/luci-indexcache /tmp/luci-indexcache.* 2>/dev/null
+rm -rf /tmp/luci-modulecache 2>/dev/null
+
+exit 0
